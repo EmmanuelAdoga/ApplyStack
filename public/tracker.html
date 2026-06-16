@@ -253,6 +253,93 @@
       .pipe-n { font-size:1.2rem; }
       .pipe-l { font-size:.6rem; }
     }
+        /* ── Email Hiring Manager ── */
+    .hm-trigger-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; background:linear-gradient(135deg,#eef2ff,#f8fafc); border:1px solid #e0e7ff; border-radius:var(--radius); padding:14px 16px; flex-wrap:wrap; }
+    .hm-trigger-text { font-size:.85rem; color:var(--gray600); max-width:440px; }
+    .hm-trigger-text strong { color:var(--navy); }
+    .btn-hm { background:linear-gradient(135deg,var(--indigo),#7c3aed); color:#fff; white-space:nowrap; }
+    .btn-hm:hover { opacity:.9; }
+    .btn-hm:disabled { opacity:.55; cursor:not-allowed; }
+    .hm-modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.65); z-index:500; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+    .hm-modal-overlay.open { display:flex; }
+    .hm-modal-box { background:#fff; border-radius:20px; padding:0; max-width:620px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.22); margin:auto; overflow:hidden; }
+    .hm-modal-hdr { background:linear-gradient(135deg,#1a2744,#4f6ef7); padding:22px 28px; color:#fff; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .hm-modal-title { font-size:1.1rem; font-weight:900; }
+    .hm-modal-sub { font-size:.82rem; opacity:.82; margin-top:3px; }
+    .hm-modal-close { background:rgba(255,255,255,.15); border:none; color:#fff; cursor:pointer; font-size:1rem; padding:6px 10px; border-radius:8px; flex-shrink:0; }
+    .hm-modal-close:hover { background:rgba(255,255,255,.3); }
+    .hm-modal-body { padding:24px 28px 28px; max-height:70vh; overflow-y:auto; }
+    .hm-intro-p { font-size:.88rem; color:var(--gray600); line-height:1.6; margin-bottom:14px; }
+    .hm-rule { background:var(--gray50); border:1px solid var(--gray200); border-radius:var(--radius); padding:12px 14px; font-size:.8rem; color:var(--gray600); margin-bottom:18px; }
+    .hm-rule strong { color:var(--navy); }
+    .hm-loading { display:flex; flex-direction:column; align-items:center; gap:14px; padding:36px 10px; text-align:center; color:var(--gray600); font-size:.9rem; }
+    .hm-spinner { width:34px; height:34px; border:3px solid var(--gray200); border-top-color:var(--indigo); border-radius:50%; animation:hm-spin 0.8s linear infinite; }
+    @keyframes hm-spin { to { transform:rotate(360deg); } }
+    .hm-locked { text-align:center; padding:24px 10px; color:var(--gray600); font-size:.9rem; line-height:1.6; }
+    .hm-locked .vp-ico { font-size:2.4rem; display:block; margin-bottom:10px; }
+    .hm-error { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:var(--radius); padding:12px 14px; font-size:.85rem; margin-bottom:14px; }
+    .hm-contact { border:1.5px solid var(--gray200); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s, background .15s; }
+    .hm-contact:hover { border-color:var(--indigo); }
+    .hm-contact.selected { border-color:var(--indigo); background:#eef2ff; }
+    .hm-contact-name { font-size:.92rem; font-weight:700; color:var(--navy); }
+    .hm-contact-title { font-size:.82rem; color:var(--gray600); margin-top:1px; }
+    .hm-contact-note { font-size:.78rem; color:var(--gray400); margin-top:5px; line-height:1.5; }
+    .hm-contact-note a { color:var(--indigo); text-decoration:none; }
+    .hm-contact-note a:hover { text-decoration:underline; }
+    .hm-email-field { margin-top:10px; }
+    .hm-email-field label { display:block; font-size:.72rem; font-weight:700; color:var(--gray600); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
+    .hm-email-field input { width:100%; padding:9px 12px; border:1.5px solid var(--gray200); border-radius:var(--radius); font-size:.88rem; font-family:inherit; outline:none; }
+    .hm-email-field input:focus { border-color:var(--indigo); }
+    .hm-draft-field { margin-bottom:14px; }
+    .hm-draft-field label { display:block; font-size:.72rem; font-weight:700; color:var(--gray600); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
+    .hm-draft-field input, .hm-draft-field textarea { width:100%; padding:10px 12px; border:1.5px solid var(--gray200); border-radius:var(--radius); font-size:.88rem; font-family:inherit; outline:none; resize:vertical; }
+    .hm-draft-field textarea { min-height:220px; line-height:1.6; }
+    .hm-draft-field input:focus, .hm-draft-field textarea:focus { border-color:var(--indigo); }
+    .hm-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+    .hm-actions .btn { flex:1; justify-content:center; min-width:140px; }
+    .hm-actions .btn-secondary { background:#fff; border:1.5px solid var(--gray200); color:var(--gray800); }
+    .hm-actions .btn-secondary:hover { border-color:var(--indigo); color:var(--indigo); }
+    .hm-disclaimer { font-size:.76rem; color:var(--gray400); margin-top:12px; line-height:1.5; }
+    .hm-success { text-align:center; padding:24px 10px; }
+    .hm-success .vp-ico { font-size:2.6rem; display:block; margin-bottom:10px; }
+    .hm-success-title { font-size:1.05rem; font-weight:800; color:var(--navy); margin-bottom:6px; }
+    .hm-success-sub { font-size:.85rem; color:var(--gray600); }
+    .hm-upsell { text-align:center; padding:20px 10px; }
+    .hm-upsell .vp-ico { font-size:2.4rem; display:block; margin-bottom:10px; }
+    .hm-upsell-title { font-size:1rem; font-weight:800; color:var(--navy); margin-bottom:6px; }
+    .hm-upsell-sub { font-size:.85rem; color:var(--gray600); margin-bottom:16px; }
+
+    /* ── File Viewer Modal ── */
+    .viewer-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.75); z-index:600; align-items:center; justify-content:center; padding:16px; }
+    .viewer-overlay.open { display:flex; }
+    .viewer-box { background:#fff; border-radius:20px; width:100%; max-width:860px; height:90vh; display:flex; flex-direction:column; box-shadow:0 24px 80px rgba(0,0,0,.3); overflow:hidden; }
+    .viewer-hdr { display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--gray200); background:#fff; flex-shrink:0; }
+    .viewer-hdr-info { flex:1; min-width:0; }
+    .viewer-filename { font-size:.95rem; font-weight:700; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .viewer-filesize { font-size:.75rem; color:var(--gray400); margin-top:2px; }
+    .viewer-dl-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:var(--indigo); color:#fff; border:none; border-radius:var(--radius); font-size:.85rem; font-weight:700; font-family:inherit; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    .viewer-dl-btn:hover { background:var(--indigo2); }
+    .viewer-close-btn { background:none; border:none; color:var(--gray400); cursor:pointer; font-size:1.2rem; padding:6px 8px; border-radius:8px; flex-shrink:0; }
+    .viewer-close-btn:hover { color:var(--red); background:var(--red-bg); }
+    .viewer-body { flex:1; overflow:auto; background:#f1f5f9; position:relative; }
+    .viewer-body iframe { width:100%; height:100%; border:none; display:block; }
+    .viewer-body .viewer-docx { background:#fff; min-height:100%; padding:40px 48px; font-family:Georgia,'Times New Roman',serif; font-size:11pt; line-height:1.75; color:#1e293b; max-width:780px; margin:0 auto; box-shadow:0 0 0 1px rgba(0,0,0,.06); }
+    .viewer-body .viewer-docx h1,.viewer-body .viewer-docx h2,.viewer-body .viewer-docx h3 { font-family:inherit; margin:1em 0 .3em; }
+    .viewer-body .viewer-docx p { margin:.4em 0; }
+    .viewer-body .viewer-docx table { border-collapse:collapse; width:100%; margin:.6em 0; }
+    .viewer-body .viewer-docx td,.viewer-body .viewer-docx th { border:1px solid #ddd; padding:4px 8px; }
+    .viewer-body .viewer-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px; text-align:center; color:var(--gray600); gap:14px; }
+    .viewer-body .viewer-placeholder .vp-ico { font-size:3rem; }
+    .viewer-loading { display:flex; align-items:center; justify-content:center; height:100%; color:var(--gray400); font-size:.95rem; }
+
+    /* ── Responsive ── */
+    @media (max-width:640px) {
+      th.hide-sm, td.hide-sm { display:none; }
+      .form-row, .form-row-3 { grid-template-columns:1fr; }
+      .detail-grid { grid-template-columns:1fr; }
+      .viewer-box { height:95vh; border-radius:16px; }
+      .viewer-body .viewer-docx { padding:24px 20px; }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
@@ -389,6 +476,15 @@
         <div class="files-row" id="dmFiles"></div>
       </div>
 
+      <!-- Email Hiring Manager -->
+      <div class="detail-section">
+        <div class="detail-section-title">🎯 Direct Outreach</div>
+        <div class="hm-trigger-row">
+          <div class="hm-trigger-text"><strong>Email Hiring Manager</strong> — find ~5 likely decision-makers at this company and send them a tailored email built from this job and your resume. First come, first served per job.</div>
+          <button class="btn btn-hm" onclick="openHiringManager()">📧 Email Hiring Manager</button>
+        </div>
+      </div>
+
       <!-- Notes -->
       <div class="detail-section">
         <div class="detail-section-title">📝 Notes</div>
@@ -397,6 +493,20 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- Email Hiring Manager Modal -->
+<div class="hm-modal-overlay" id="hmModal" onclick="if(event.target===this)closeHiringManager()">
+  <div class="hm-modal-box">
+    <div class="hm-modal-hdr">
+      <div>
+        <div class="hm-modal-title">📧 Email Hiring Manager</div>
+        <div class="hm-modal-sub" id="hmModalSub"></div>
+      </div>
+      <button class="hm-modal-close" onclick="closeHiringManager()">✕ Close</button>
+    </div>
+    <div class="hm-modal-body" id="hmBody"></div>
   </div>
 </div>
 
@@ -1189,6 +1299,239 @@ function closeViewer() {
   document.getElementById('viewerBody').innerHTML = '<div class="viewer-loading">Loading preview…</div>';
   _viewerFileRef = null;
 }
+
+// ── Email Hiring Manager ─────────────────────────────────────────
+var _hm = null; // { entry, jobKey, contacts, selectedIdx, contactEmail, draft, userName, _retryFn }
+
+function hmIsPro() {
+  var u; try { u = JSON.parse(localStorage.getItem('tc_user')) || {}; } catch(e) { u = {}; }
+  return !!(u.is_owner || (u.plan === 'pro' && ['active','beta'].includes(u.subscription_status)));
+}
+
+async function hmApi(path, body) {
+  var res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('tc_token') || '') },
+    body: JSON.stringify(body || {}),
+  });
+  var data = {};
+  try { data = await res.json(); } catch(e) {}
+  if (!res.ok) {
+    var err = new Error(data.message || data.error || 'Something went wrong. Please try again.');
+    err.status = res.status;
+    err.code = data.error;
+    throw err;
+  }
+  return data;
+}
+
+function openHiringManager() {
+  var entry = load().find(function(e){ return e.id === _detailId; });
+  if (!entry) return;
+  _hm = { entry: entry, jobKey: null, contacts: [], selectedIdx: null, contactEmail: entry.recruiterEmail || '', draft: null, userName: localStorage.getItem('hm_user_name') || '', _retryFn: null };
+  document.getElementById('hmModalSub').textContent = (entry.role || 'Role') + ' — ' + (entry.company || 'Company');
+  document.getElementById('hmModal').classList.add('open');
+  if (!hmIsPro()) { hmRenderUpsell(); return; }
+  hmRenderIntro();
+}
+
+function closeHiringManager() {
+  document.getElementById('hmModal').classList.remove('open');
+  _hm = null;
+}
+
+function hmRenderUpsell() {
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-upsell">' +
+      '<span class="vp-ico">🔒</span>' +
+      '<div class="hm-upsell-title">This is a Pro feature</div>' +
+      '<div class="hm-upsell-sub">Email Hiring Manager researches likely decision-makers and drafts a personalised outreach email for you. Upgrade to ApplyStack Pro to unlock it.</div>' +
+      '<a href="/app.html#upgrade" class="btn btn-primary">Upgrade to Pro →</a>' +
+    '</div>';
+}
+
+function hmRenderIntro() {
+  var e = _hm.entry;
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-intro-p">ApplyStack will research roughly 5 people who likely handle hiring or recruiting for <strong>' + esc(e.role||'this role') + '</strong> at <strong>' + esc(e.company||'this company') + '</strong> — names, titles, and source links where available.</div>' +
+    '<div class="hm-intro-p">You’ll pick a contact, add their email address, then review and edit an AI-drafted outreach email before anything goes out. Nothing sends without your approval.</div>' +
+    '<div class="hm-rule"><strong>First come, first served:</strong> once outreach starts on this job, it’s locked for every other ApplyStack user — so you get a clear shot at the decision-maker.</div>' +
+    '<div class="hm-actions"><button class="btn btn-hm" style="flex:1" onclick="hmFindContacts()">🔍 Find Decision-Makers</button></div>';
+}
+
+async function hmFindContacts() {
+  var e = _hm.entry;
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-loading"><div class="hm-spinner"></div><div>Researching decision-makers at ' + esc(e.company||'this company') + '…</div></div>';
+  try {
+    var data = await hmApi('/api/hiring-manager/find-contacts', {
+      company: e.company, role: e.role, jd: e.jd, jobUrl: e.jobUrl,
+    });
+    _hm.jobKey  = data.jobKey;
+    _hm.contacts = data.contacts || [];
+    if (!_hm.contacts.length) {
+      hmRenderError('No likely contacts were found for this role. You can try again later, or add a contact manually using the Recruiter / Contact fields on this application.', hmRenderIntro);
+      return;
+    }
+    hmRenderContacts();
+  } catch (err) {
+    if (err.status === 409) {
+      hmRenderLocked(err.message);
+    } else if (err.status === 402) {
+      hmRenderUpsell();
+    } else {
+      hmRenderError(err.message, hmRenderIntro);
+    }
+  }
+}
+
+function hmRenderLocked(message) {
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-locked"><span class="vp-ico">🔒</span>' + esc(message || 'This job has already been claimed by another ApplyStack user.') + '</div>' +
+    '<div class="hm-actions"><button class="btn btn-secondary" style="flex:1" onclick="closeHiringManager()">Close</button></div>';
+}
+
+function hmRenderError(message, retryFn) {
+  _hm._retryFn = retryFn || hmRenderIntro;
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-error">' + esc(message || 'Something went wrong. Please try again.') + '</div>' +
+    '<div class="hm-actions">' +
+      '<button class="btn btn-secondary" onclick="closeHiringManager()">Close</button>' +
+      '<button class="btn btn-hm" onclick="hmRetry()">Try Again</button>' +
+    '</div>';
+}
+
+function hmRetry() { if (_hm && _hm._retryFn) _hm._retryFn(); }
+
+function hmRenderContacts() {
+  var html = '<div class="hm-intro-p">Pick the best contact, then add their email address (we don’t auto-guess emails — find it on the company site, LinkedIn, or a tool like Hunter.io).</div>';
+  _hm.contacts.forEach(function(c, i) {
+    var sel = _hm.selectedIdx === i;
+    html += '<div class="hm-contact' + (sel ? ' selected' : '') + '" onclick="hmSelectContact(' + i + ')">' +
+      '<div class="hm-contact-name">' + esc(c.name || 'Name not found') + '</div>' +
+      '<div class="hm-contact-title">' + esc(c.title || '') + '</div>' +
+      (c.note ? '<div class="hm-contact-note">' + esc(c.note) + (c.source ? ' · <a href="' + esc(c.source) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Source</a>' : '') + '</div>' : '') +
+      (sel ? '<div class="hm-email-field" onclick="event.stopPropagation()"><label>Their email address</label><input type="email" id="hmContactEmail" placeholder="name@company.com" value="' + esc(_hm.contactEmail) + '" oninput="_hm.contactEmail=this.value"></div>' : '') +
+    '</div>';
+  });
+  html += '<div class="hm-actions">' +
+    '<button class="btn btn-secondary" onclick="hmRenderIntro()">← Back</button>' +
+    '<button class="btn btn-hm" onclick="hmDraftEmail()">Draft Email →</button>' +
+  '</div>';
+  document.getElementById('hmBody').innerHTML = html;
+}
+
+function hmSelectContact(i) {
+  _hm.selectedIdx = i;
+  hmRenderContacts();
+  setTimeout(function(){ var el = document.getElementById('hmContactEmail'); if (el) el.focus(); }, 20);
+}
+
+function hmExtractResumeText() {
+  return new Promise(function(resolve) {
+    var f = loadTrackerFile(_hm.entry.id, 'resume');
+    if (!f || !f.data || typeof mammoth === 'undefined') { resolve(''); return; }
+    try {
+      var b64  = f.data.split(',')[1];
+      var bin  = atob(b64);
+      var buf  = new ArrayBuffer(bin.length);
+      var view = new Uint8Array(buf);
+      for (var i = 0; i < bin.length; i++) view[i] = bin.charCodeAt(i);
+      mammoth.extractRawText({ arrayBuffer: buf }).then(function(result) {
+        resolve((result && result.value) || '');
+      }).catch(function(){ resolve(''); });
+    } catch(e) { resolve(''); }
+  });
+}
+
+async function hmDraftEmail() {
+  if (_hm.selectedIdx == null) { alert('Please select a contact first.'); return; }
+  var email = (_hm.contactEmail || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Please enter a valid email address for this contact.'); return; }
+  _hm.contactEmail = email;
+
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-loading"><div class="hm-spinner"></div><div>Drafting your outreach email…</div></div>';
+
+  try {
+    var resumeText = await hmExtractResumeText();
+    var contact = _hm.contacts[_hm.selectedIdx];
+    var data = await hmApi('/api/hiring-manager/draft-email', {
+      jobKey: _hm.jobKey, company: _hm.entry.company, role: _hm.entry.role, jd: _hm.entry.jd,
+      resumeText: resumeText, contact: { name: contact.name, title: contact.title }, userName: _hm.userName,
+    });
+    _hm.draft = data;
+    hmRenderDraft();
+  } catch (err) {
+    if (err.status === 402) { hmRenderUpsell(); }
+    else { hmRenderError(err.message, hmRenderContacts); }
+  }
+}
+
+function hmRenderDraft() {
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-draft-field"><label>Your name (for the signature)</label><input type="text" id="hmUserName" value="' + esc(_hm.userName) + '" placeholder="Your full name"></div>' +
+    '<div class="hm-draft-field"><label>Subject</label><input type="text" id="hmSubject" value="' + esc(_hm.draft.subject || '') + '"></div>' +
+    '<div class="hm-draft-field"><label>Body</label><textarea id="hmBodyText">' + esc(_hm.draft.body || '') + '</textarea></div>' +
+    '<div class="hm-actions">' +
+      '<button class="btn btn-secondary" onclick="hmRenderContacts()">← Back</button>' +
+      '<button class="btn btn-secondary" onclick="hmDraftEmail()">↻ Regenerate</button>' +
+      '<button class="btn btn-hm" onclick="hmGoToSend()">Continue →</button>' +
+    '</div>';
+}
+
+function hmGoToSend() {
+  _hm.draft.subject = document.getElementById('hmSubject').value;
+  _hm.draft.body    = document.getElementById('hmBodyText').value;
+  _hm.userName      = document.getElementById('hmUserName').value.trim();
+  if (_hm.userName) localStorage.setItem('hm_user_name', _hm.userName);
+  if (!_hm.draft.subject.trim() || !_hm.draft.body.trim()) { alert('Subject and body cannot be empty.'); return; }
+  hmRenderSend();
+}
+
+function hmRenderSend() {
+  var contact = _hm.contacts[_hm.selectedIdx];
+  var to = _hm.contactEmail;
+  var mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(_hm.draft.subject) + '&body=' + encodeURIComponent(_hm.draft.body);
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-intro-p">Ready to send to <strong>' + esc(contact.name || contact.title || 'this contact') + '</strong>.</div>' +
+    '<div class="hm-draft-field"><label>To</label><input type="email" id="hmSendTo" value="' + esc(to) + '"></div>' +
+    '<div class="hm-draft-field"><label>Subject</label><div class="detail-field-value">' + esc(_hm.draft.subject) + '</div></div>' +
+    '<div class="hm-draft-field"><label>Body</label><div class="detail-field-value" style="white-space:pre-wrap;line-height:1.65">' + esc(_hm.draft.body) + '</div></div>' +
+    '<div class="hm-actions">' +
+      '<button class="btn btn-secondary" onclick="hmRenderDraft()">← Edit</button>' +
+      '<a class="btn btn-secondary" href="' + mailto + '">✉️ Open in My Email App</a>' +
+      '<button class="btn btn-hm" onclick="hmSendViaApp()">📤 Send via ApplyStack</button>' +
+    '</div>' +
+    '<div class="hm-disclaimer">"Send via ApplyStack" sends from ApplyStack on your behalf, with your email set as Reply-To — replies land straight in your inbox. "Open in My Email App" drafts the message in your own mail client; nothing sends until you do.</div>';
+}
+
+async function hmSendViaApp() {
+  var to = (document.getElementById('hmSendTo').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { alert('Please enter a valid recipient email address.'); return; }
+  _hm.contactEmail = to;
+
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-loading"><div class="hm-spinner"></div><div>Sending…</div></div>';
+
+  try {
+    await hmApi('/api/hiring-manager/send', {
+      jobKey: _hm.jobKey, to: to, subject: _hm.draft.subject, body: _hm.draft.body, userName: _hm.userName,
+    });
+    hmRenderSuccess();
+  } catch (err) {
+    hmRenderError(err.message, hmRenderSend);
+  }
+}
+
+function hmRenderSuccess() {
+  document.getElementById('hmBody').innerHTML =
+    '<div class="hm-success"><span class="vp-ico">✅</span>' +
+    '<div class="hm-success-title">Email sent!</div>' +
+    '<div class="hm-success-sub">Your outreach email is on its way — replies will land straight in your inbox.</div>' +
+    '<div class="hm-actions"><button class="btn btn-hm" style="flex:1" onclick="closeHiringManager()">Done</button></div></div>';
+}
+
 
 // ── Auth guard ────────────────────────────────────────────────
 (function() {

@@ -4040,7 +4040,7 @@ async function importResumeToVault(file) {
       'Parse this COMPLETE resume text into structured career data. Read the ENTIRE text carefully from start to end before generating output.',
       '',
       '=== COMPLETE RESUME TEXT (read every line) ===',
-      text.slice(0, 15000),
+      text.slice(0, 30000),
       '=== END OF RESUME TEXT ===',
       '',
       'CRITICAL INSTRUCTIONS:',
@@ -4096,7 +4096,7 @@ async function importResumeToVault(file) {
         type: 'score',
         system: sys,
         userMsg: prompt,
-        maxTokens: 12000,
+        maxTokens: 16000,
         model: 'claude-sonnet-4-6'
       })
     });

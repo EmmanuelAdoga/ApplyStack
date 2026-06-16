@@ -19,6 +19,24 @@ function genReferralCode() {
   return crypto.randomBytes(5).toString('base64url').toUpperCase().slice(0, 8).replace(/[^A-Z0-9]/g, 'X');
 }
 
+// ── Email Hiring Manager: job-key fingerprint ───────────────────
+// "First come, first served" lock key for a job. Prefer the job
+// posting URL (most precise); fall back to a normalised fingerprint
+// of company + role + a slice of the JD when no URL is available.
+function computeJobKey({ jobUrl, company, role, jd }) {
+  if (jobUrl && jobUrl.trim()) {
+    const norm = jobUrl.trim().toLowerCase().replace(/[?#].*$/, '').replace(/\/+$/, '');
+    return 'url:' + crypto.createHash('sha256').update(norm).digest('hex');
+  }
+  const norm = [
+    (company || '').trim().toLowerCase(),
+    (role || '').trim().toLowerCase(),
+    (jd || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 600),
+  ].join('|');
+  return 'fp:' + crypto.createHash('sha256').update(norm).digest('hex');
+}
+
+
 // ── Load env ───────────────────────────────────────────────────
 try { require('dotenv').config(); } catch(e) {}
 
@@ -88,27 +106,47 @@ const pool = new Pool({
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code);`);
   // Career Data Vault — JSONB column on users (stored alongside the user row)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS career_vault JSONB;`);
+  // Email Hiring Manager — cross-user "first come, first served" job locks
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hiring_outreach_locks (
+      id                SERIAL PRIMARY KEY,
+      job_key           TEXT UNIQUE NOT NULL,
+      job_url           TEXT,
+      company           TEXT,
+      role              TEXT,
+      locked_by_user_id INTEGER NOT NULL,
+      locked_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      contacts          JSONB,
+      draft             JSONB,
+      status            TEXT NOT NULL DEFAULT 'researching',
+      sent_at           TIMESTAMPTZ,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
   console.log('Database ready.');
 })().catch(err => { console.error('DB init error:', err); process.exit(1); });
 
 // ══════════════════════════════════════════════════════════════
 //  EMAIL — Resend HTTP API (no SDK needed)
 // ══════════════════════════════════════════════════════════════
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, opts) {
   if (!RESEND_KEY) return; // silently skip if not configured
+  opts = opts || {};
   try {
+    const payload = {
+      from:    opts.from || 'ApplyStack <hello@applystack.ai>',
+      to:      [to],
+      subject,
+      html,
+    };
+    if (opts.replyTo) payload.reply_to = opts.replyTo;
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${RESEND_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from:    'ApplyStack <hello@applystack.ai>',
-        to:      [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
@@ -2402,6 +2440,316 @@ app.post('/api/salary-negotiate', requireAuth, async (req, res) => {
     res.status(502).json({ error: 'Failed to generate negotiation strategy. Please try again.' });
   }
 });
+
+// POST /api/hiring-manager/find-contacts
+// Atomically claims the job (first-come-first-served), then
+// researches ~5 likely decision-makers via Serper + Claude.
+app.post('/api/hiring-manager/find-contacts', requireAuth, aiLimiter, async (req, res) => {
+  const { company, role, jd, jobUrl } = req.body || {};
+  const user = req.user;
+
+  if (!company || !role) {
+    return res.status(400).json({ error: 'Company and role are required.' });
+  }
+
+  const isOwner = OWNER_EMAIL && user.email === OWNER_EMAIL;
+  const isPro = isOwner || (user.plan === 'pro' && ['active', 'beta'].includes(user.subscription_status));
+  if (!isPro) {
+    return res.status(402).json({
+      error: 'upgrade_required',
+      message: 'Email Hiring Manager requires an ApplyStack Pro subscription.',
+    });
+  }
+
+  if (!CLAUDE_KEY) {
+    return res.status(503).json({ error: 'AI service not configured. Please contact support.' });
+  }
+
+  const jobKey = computeJobKey({ jobUrl, company, role, jd });
+
+  try {
+    // Try to atomically claim the lock for this job.
+    const insertResult = await pool.query(
+      `INSERT INTO hiring_outreach_locks (job_key, job_url, company, role, locked_by_user_id, status)
+       VALUES ($1, $2, $3, $4, $5, 'researching')
+       ON CONFLICT (job_key) DO NOTHING
+       RETURNING id`,
+      [jobKey, jobUrl || null, company, role, user.id]
+    );
+
+    let lockRow;
+    if (insertResult.rows.length === 0) {
+      // Already exists — check who owns it.
+      const existing = await pool.query(
+        `SELECT locked_by_user_id, status, contacts FROM hiring_outreach_locks WHERE job_key = $1`,
+        [jobKey]
+      );
+      lockRow = existing.rows[0];
+      if (!lockRow) {
+        return res.status(500).json({ error: 'Could not claim job lock. Please try again.' });
+      }
+      if (lockRow.locked_by_user_id !== user.id) {
+        return res.status(409).json({
+          error: 'locked',
+          message: "This job has already been claimed by another ApplyStack user — it's first come, first served. Try this on a different role.",
+        });
+      }
+      // Same user — if contacts already researched, return them as-is.
+      if (lockRow.contacts) {
+        return res.json({ jobKey, contacts: lockRow.contacts, locked: true });
+      }
+    }
+
+    // Research decision-makers via Serper + Claude.
+    const serperKey = process.env.SERPER_API_KEY;
+    let researchContext = '';
+
+    if (serperKey) {
+      try {
+        const searches = [
+          `"${company}" "Talent Acquisition" OR "Recruiter" OR "Hiring Manager" LinkedIn`,
+          `"${company}" "${role}" hiring manager OR recruiter LinkedIn`,
+          `"${company}" HR team OR "People Operations" leadership`,
+        ];
+        for (const query of searches) {
+          const sresp = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: query, num: 6 }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (sresp.ok) {
+            const sdata = await sresp.json();
+            const snippets = (sdata.organic || []).slice(0, 6).map(r =>
+              [r.title, r.snippet, r.link].filter(Boolean).join(' — ')
+            );
+            researchContext += snippets.join('\n') + '\n';
+          }
+        }
+      } catch (e) {
+        console.error('Serper search error in find-contacts:', e.message);
+      }
+    }
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': CLAUDE_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        system: 'You are an expert recruiting researcher. Identify likely hiring decision-makers from search snippets and general knowledge. Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: [
+            `Identify up to 5 people who are likely decision-makers, recruiters, or HR/Talent Acquisition contacts for a "${role}" role at "${company}".`,
+            researchContext ? `Web research context (may be incomplete or outdated — use judgment):\n${researchContext}` : 'No web research was available — use your general knowledge of how companies of this type typically structure their hiring/recruiting teams, and suggest plausible titles/roles even if you cannot name specific individuals.',
+            `For each person, return their likely full name (if found — otherwise null), job title, a short note on why they're relevant/how confident you are, and a source URL if one was found in the research context (otherwise null).`,
+            `Do NOT invent an email address — leave that for the user to find.`,
+            `Return exactly this JSON structure:`,
+            `{`,
+            `  "contacts": [`,
+            `    { "name": "Full Name or null", "title": "Job title", "note": "Why relevant / confidence", "source": "URL or null" }`,
+            `  ]`,
+            `}`,
+            `Return between 3 and 5 contacts, ordered by likely relevance (most relevant first).`,
+          ].join('\n')
+        }],
+      }),
+    });
+
+    let contacts = [];
+    if (claudeRes.ok) {
+      const json = await claudeRes.json();
+      let text = json.content[0].text.trim();
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenced) text = fenced[1].trim();
+      const s = text.indexOf('{');
+      if (s !== -1) text = text.slice(s, text.lastIndexOf('}') + 1);
+      try {
+        const parsed = JSON.parse(text);
+        contacts = Array.isArray(parsed.contacts) ? parsed.contacts : [];
+      } catch (e) {
+        console.error('find-contacts JSON parse error:', e.message);
+      }
+    } else {
+      console.error('Claude find-contacts error:', claudeRes.status);
+    }
+
+    // Persist the research results on the lock row.
+    await pool.query(
+      `UPDATE hiring_outreach_locks SET contacts = $1, status = 'researched' WHERE job_key = $2`,
+      [JSON.stringify(contacts), jobKey]
+    );
+
+    res.json({ jobKey, contacts, locked: true });
+  } catch (err) {
+    console.error('find-contacts error:', err);
+    res.status(502).json({ error: 'Could not research decision-makers. Please try again.' });
+  }
+});
+
+// POST /api/hiring-manager/draft-email
+// Drafts a personalised outreach email to the selected contact.
+app.post('/api/hiring-manager/draft-email', requireAuth, aiLimiter, async (req, res) => {
+  const { jobKey, company, role, jd, resumeText, contact, userName } = req.body || {};
+  const user = req.user;
+
+  if (!jobKey || !company || !role || !contact || !contact.title) {
+    return res.status(400).json({ error: 'jobKey, company, role, and contact are required.' });
+  }
+
+  const isOwner = OWNER_EMAIL && user.email === OWNER_EMAIL;
+  const isPro = isOwner || (user.plan === 'pro' && ['active', 'beta'].includes(user.subscription_status));
+  if (!isPro) {
+    return res.status(402).json({
+      error: 'upgrade_required',
+      message: 'Email Hiring Manager requires an ApplyStack Pro subscription.',
+    });
+  }
+
+  if (!CLAUDE_KEY) {
+    return res.status(503).json({ error: 'AI service not configured. Please contact support.' });
+  }
+
+  try {
+    // Confirm this user owns the lock for this job.
+    const lockResult = await pool.query(
+      `SELECT locked_by_user_id FROM hiring_outreach_locks WHERE job_key = $1`,
+      [jobKey]
+    );
+    const lockRow = lockResult.rows[0];
+    if (!lockRow || lockRow.locked_by_user_id !== user.id) {
+      return res.status(403).json({ error: 'You do not hold the claim on this job.' });
+    }
+
+    const jdExcerpt = (jd || '').slice(0, 2000);
+    const resumeExcerpt = (resumeText || '').slice(0, 3500);
+    const name = (userName || '').trim() || user.email;
+    const contactName = (contact.name || '').trim();
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': CLAUDE_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        system: 'You are an expert career coach writing a cold outreach email on behalf of a job candidate, in their voice (first person). Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: [
+            `Write a concise, compelling cold outreach email from "${name}" to ${contactName ? contactName + ', ' : ''}${contact.title} at "${company}", regarding the "${role}" role.`,
+            `Job description excerpt:\n${jdExcerpt}`,
+            `Candidate's resume excerpt:\n${resumeExcerpt}`,
+            `The email should:`,
+            `- Open with a brief, genuine reason for reaching out to this specific person`,
+            `- Make a tight case for fit, referencing 2-3 specific resume strengths that map to the JD's requirements`,
+            `- Be warm but professional, 130-200 words for the body`,
+            `- End with a clear, low-pressure call to action (e.g. a quick chat or considering the attached application)`,
+            `- Sign off with "${name}"`,
+            `- NOT use generic filler like "I am writing to express my interest" — be specific and human`,
+            `Return exactly this JSON structure:`,
+            `{ "subject": "Short, specific subject line", "body": "Full email body as plain text with \\n\\n between paragraphs" }`,
+          ].join('\n')
+        }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      console.error('Claude draft-email error:', claudeRes.status);
+      return res.status(502).json({ error: 'Could not draft email. Please try again.' });
+    }
+
+    const json = await claudeRes.json();
+    let text = json.content[0].text.trim();
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) text = fenced[1].trim();
+    const s = text.indexOf('{');
+    if (s !== -1) text = text.slice(s, text.lastIndexOf('}') + 1);
+
+    const draft = JSON.parse(text);
+
+    await pool.query(
+      `UPDATE hiring_outreach_locks SET draft = $1, status = 'drafted' WHERE job_key = $2`,
+      [JSON.stringify({ ...draft, contact }), jobKey]
+    );
+
+    res.json({ subject: draft.subject, body: draft.body });
+  } catch (err) {
+    console.error('draft-email error:', err);
+    res.status(502).json({ error: 'Could not draft email. Please try again.' });
+  }
+});
+
+// POST /api/hiring-manager/send
+// Sends the user-approved email via Resend, Reply-To the user's email.
+app.post('/api/hiring-manager/send', requireAuth, aiLimiter, async (req, res) => {
+  const { jobKey, to, subject, body, userName } = req.body || {};
+  const user = req.user;
+
+  if (!jobKey || !to || !subject || !body) {
+    return res.status(400).json({ error: 'jobKey, to, subject, and body are required.' });
+  }
+
+  const isOwner = OWNER_EMAIL && user.email === OWNER_EMAIL;
+  const isPro = isOwner || (user.plan === 'pro' && ['active', 'beta'].includes(user.subscription_status));
+  if (!isPro) {
+    return res.status(402).json({
+      error: 'upgrade_required',
+      message: 'Email Hiring Manager requires an ApplyStack Pro subscription.',
+    });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(to).trim())) {
+    return res.status(400).json({ error: 'Please enter a valid recipient email address.' });
+  }
+
+  const safeSubject = String(subject).replace(/[\r\n]/g, ' ').slice(0, 200);
+
+  try {
+    const lockResult = await pool.query(
+      `SELECT locked_by_user_id FROM hiring_outreach_locks WHERE job_key = $1`,
+      [jobKey]
+    );
+    const lockRow = lockResult.rows[0];
+    if (!lockRow || lockRow.locked_by_user_id !== user.id) {
+      return res.status(403).json({ error: 'You do not hold the claim on this job.' });
+    }
+
+    // Sanitize the display name (strip header-breaking chars before using it in From:)
+    const rawName = (userName || '').trim() || user.email;
+    const name = rawName.replace(/[<>"\r\n]/g, '').slice(0, 60) || 'A Candidate';
+
+    const htmlBody = String(body)
+      .split(/\n\s*\n/)
+      .map(p => `<p style="margin:0 0 14px;">${p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')}</p>`)
+      .join('');
+
+    await sendEmail(String(to).trim(), safeSubject, htmlBody, {
+      from: `${name} via ApplyStack <hello@applystack.ai>`,
+      replyTo: user.email,
+    });
+
+    await pool.query(
+      `UPDATE hiring_outreach_locks SET status = 'sent', sent_at = NOW() WHERE job_key = $1`,
+      [jobKey]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('hiring-manager send error:', err);
+    res.status(502).json({ error: 'Could not send email. Please try again.' });
+  }
+});
+
+
 
 // ── SPA fallback ───────────────────────────────────────────────
 app.get('*', (req, res) => {
