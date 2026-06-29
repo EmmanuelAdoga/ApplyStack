@@ -2328,7 +2328,7 @@ var _tmcIdx  = 0;
 var _tmcHtmlCache = {};  // cacheKey → rendered html string
 
 // Template lists for each tab
-var _tmcResumeList = ['classic','executive','modern','professional','minimal','tech','consulting','academic','entrylevel','government','creative','healthcare','compact','custom'];
+var _tmcResumeList = ['classic','executive','modern','professional','minimal','tech','consulting','academic','entrylevel','government','creative','healthcare','compact','midnight','ember','violet','stone','custom'];
 var _tmcCLList     = ['classic','modern','executive','minimalist','bold','creative','technical','elegant','corporate','compact'];
 
 // Sample cover letter data used in previews
