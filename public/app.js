@@ -4563,8 +4563,8 @@ async function runJobMatch() {
     }));
 
     // Authentic ATS jobs — direct from company hiring systems (Greenhouse, Lever, etc.)
-    // Use top 3 searches to avoid over-fetching; results go to the front of the list
-    var authPromise = Promise.all(searches.slice(0, 3).map(async function(s) {
+    // Use top 5 searches for better coverage
+    var authPromise = Promise.all(searches.slice(0, 5).map(async function(s) {
       try {
         var r = await fetch('/api/jobs-authentic', {
           method: 'POST',

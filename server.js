@@ -1786,7 +1786,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
 
     // Helper: build common Serper /search body
     function serperSearchBody(q, extra = {}) {
-      const body = { q, num: 10, ...extra };
+      const body = { q, num: 20, ...extra };
       const glCode = gl || (location ? null : 'us');
       if (glCode) body.gl = glCode;
       if (!body.gl) delete body.gl;
@@ -1816,7 +1816,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
     const [p1Result, p2Result, p3Result] = await Promise.allSettled([
 
       // P1 — Eluta.ca dedicated
-      serperSearch(`${baseQ} site:eluta.ca`, { num: 10 }),
+      serperSearch(`${baseQ} site:eluta.ca`, { num: 20 }),
 
       // P2 — Hiring.cafe + broader ATS/job boards
       serperSearch(`${baseQ} (site:hiring.cafe OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:ca.indeed.com OR site:ziprecruiter.com/jobs OR site:workday.com)`),
@@ -1826,7 +1826,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
         method:  'POST',
         headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
         body:    JSON.stringify((() => {
-          const b = { q: baseQ, num: 10 };
+          const b = { q: baseQ, num: 20 };
           if (start > 0) b.start = start;
           if (gl) b.gl = gl;
           if (dateMap[datePosted]) b.datePosted = dateMap[datePosted];
@@ -1887,7 +1887,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
     // ── Merge: Eluta first, then Hiring.cafe/ATS, then Google Jobs panel ──
     const merged = dedup([...elutaJobs, ...boardJobs, ...googlePanelJobs]);
     if (merged.length > 0) {
-      return res.json({ jobs: merged, source: 'google', hasMore: merged.length >= 10 });
+      return res.json({ jobs: merged, source: 'google', hasMore: merged.length >= 15 });
     }
     errors.push('Serper: all strategies returned 0 results');
   }
@@ -1903,7 +1903,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
       const params = new URLSearchParams({
         query:       searchQ + expSuffix,
         page:        String(Math.floor(start / 10) + 1),
-        num_pages:   '1',
+        num_pages:   '2',
         date_posted: jDateMap[datePosted] || 'month',
       });
       if (workType === 'remote') params.set('remote_jobs_only', 'true');
@@ -1941,7 +1941,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
 
   // ── 3. Remotive (free, no-auth — remote jobs only) ────────────
   try {
-    const rurl = `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(query)}&limit=20`;
+    const rurl = `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(query)}&limit=50`;
     const rresp = await fetch(rurl, { signal: AbortSignal.timeout(8000) });
     if (!rresp.ok) throw new Error(`Remotive HTTP ${rresp.status}`);
     const rdata = await rresp.json();
@@ -1956,7 +1956,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
       if (filtered.length >= 3) jobs = filtered;
     }
 
-    const mapped = jobs.slice(start, start + 10).map(j => ({
+    const mapped = jobs.slice(start, start + 25).map(j => ({
       id:             String(j.id),
       title:          j.title,
       company:        j.company_name,
@@ -1973,7 +1973,7 @@ app.post('/api/jobs-search', requireAuth, async (req, res) => {
       via:            null,
     }));
 
-    return res.json({ jobs: mapped, source: 'remotive', hasMore: jobs.length > start + 10, _debug: errors.length ? errors : undefined });
+    return res.json({ jobs: mapped, source: 'remotive', hasMore: jobs.length > start + 25, _debug: errors.length ? errors : undefined });
   } catch (err) {
     console.error('Remotive error:', err.message);
     errors.push('Remotive: ' + err.message);
