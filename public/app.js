@@ -548,6 +548,46 @@ var TEMPLATES = {
     names:{ summary:'SUMMARY', skills:'SKILLS', experience:'EXPERIENCE', tech:'TECHNICAL', certs:'CERTS', edu:'EDUCATION' },
     pvAccent:'#4b5563', compact:true,
     hdrStyle:'plain-left', secHdr:'caps-gray', secCase:'upper', skillsRender:'inline'
+  },
+  midnight: {
+    FONT:'Calibri', B:20, NP:58, nameAlign:'CENTER',
+    secBorder:'SINGLE', secColor:'06b6d4', secBorderSz:6,
+    MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
+    order:['summary','skills','experience','tech','certs','edu'],
+    names:{ summary:'PROFILE', skills:'CORE SKILLS', experience:'EXPERIENCE', tech:'TECHNOLOGIES', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    pvAccent:'#06b6d4',
+    hdrStyle:'gradient-banner', headerBg:'linear-gradient(135deg,#0f172a,#164e63)', headerFg:'#ffffff',
+    secHdr:'color-underline', secCase:'upper', skillsRender:'pills'
+  },
+  ember: {
+    FONT:'Calibri', B:20, NP:56, nameAlign:'LEFT',
+    secBorder:'SINGLE', secColor:'c2410c', secBorderSz:6,
+    MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
+    order:['summary','skills','experience','tech','certs','edu'],
+    names:{ summary:'PROFESSIONAL SUMMARY', skills:'KEY SKILLS', experience:'PROFESSIONAL EXPERIENCE', tech:'TOOLS & TECHNOLOGY', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    pvAccent:'#c2410c',
+    hdrStyle:'accent-top', headerBg:'#c2410c',
+    secHdr:'left-bar', secCase:'upper', skillsRender:'pills'
+  },
+  violet: {
+    FONT:'Calibri', B:20, NP:58, nameAlign:'CENTER',
+    secBorder:'SINGLE', secColor:'7c3aed', secBorderSz:6,
+    MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
+    order:['summary','skills','experience','tech','certs','edu'],
+    names:{ summary:'EXECUTIVE PROFILE', skills:'COMPETENCIES', experience:'CAREER HISTORY', tech:'TECHNICAL SKILLS', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    pvAccent:'#7c3aed',
+    hdrStyle:'gradient-banner', headerBg:'linear-gradient(135deg,#4c1d95,#7c3aed)', headerFg:'#ffffff',
+    secHdr:'color-underline', secCase:'title', skillsRender:'pills'
+  },
+  stone: {
+    FONT:'Georgia', B:20, NP:56, nameAlign:'CENTER',
+    secBorder:'SINGLE', secColor:'be123c', secBorderSz:6,
+    MAR:1080, secBefore:240, secAfter:100, bodyAfter:120, roleAfter:180,
+    order:['summary','skills','experience','tech','certs','edu'],
+    names:{ summary:'Professional Profile', skills:'Core Expertise', experience:'Professional Experience', tech:'Technical Skills', certs:'Credentials', edu:'Education' },
+    pvAccent:'#be123c',
+    hdrStyle:'banner', headerBg:'#292524', headerFg:'#fafaf9',
+    secHdr:'dots', secCase:'title', skillsRender:'grid2'
   }
 };
 
@@ -2234,7 +2274,7 @@ function getLoremData() {
   return (!selectedProfile || isProjectProfile(selectedProfile)) ? LOREM_DATA : LOREM_DATA_BULLET;
 }
 
-var TEMPLATE_ORDER  = ['classic','executive','modern','professional','minimal','tech','consulting','academic','entrylevel','government','creative','healthcare','compact','custom'];
+var TEMPLATE_ORDER  = ['classic','executive','modern','professional','minimal','tech','consulting','academic','entrylevel','government','creative','healthcare','compact','midnight','ember','violet','stone','custom'];
 var TEMPLATE_LABELS = {
   classic:'Classic — Traditional, centered',    executive:'Executive — Serif, double rule',
   modern:'Modern — Indigo accent bar',           professional:'Professional — Navy sidebar',
@@ -2242,7 +2282,10 @@ var TEMPLATE_LABELS = {
   consulting:'Consulting — Burgundy, impact-first', academic:'Academic — Education first',
   entrylevel:'Entry Level — Education & skills first', government:'Government — Formal, federal',
   creative:'Creative — Teal left accent',        healthcare:'Healthcare — Clinical teal',
-  compact:'Compact — Dense, 1-page optimised',   custom:'Custom ✦ — Design from scratch'
+  compact:'Compact — Dense, 1-page optimised',
+  midnight:'Midnight — Dark navy · cyan accents', ember:'Ember — Terracotta · bold left',
+  violet:'Violet — Purple gradient · modern',    stone:'Stone — Charcoal · rose gold',
+  custom:'Custom ✦ — Design from scratch'
 };
 var currentPreviewTemplate = 'classic';
 
