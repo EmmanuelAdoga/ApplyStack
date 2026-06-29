@@ -134,7 +134,7 @@ async function sendEmail(to, subject, html, opts) {
   opts = opts || {};
   try {
     const payload = {
-      from:    opts.from || 'ApplyStack <hello@applystack.ai>',
+      from:    opts.from || 'ApplyStack <onboarding@resend.dev>',
       to:      [to],
       subject,
       html,
@@ -375,6 +375,62 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: safeUser(req.user) });
+});
+
+// ── Password Reset ─────────────────────────────────────────────
+// Ensure reset-token columns exist (idempotent)
+pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT`).catch(() => {});
+pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ`).catch(() => {});
+
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+  // Always return success to prevent email enumeration
+  res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+  try {
+    const { email } = req.body || {};
+    if (!email) return;
+    const result = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (!result.rows.length) return; // no such user — already responded
+    const userId = result.rows[0].id;
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await pool.query(
+      'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+      [token, expires, userId]
+    );
+    const resetUrl = `${APP_URL}/reset-password.html?token=${token}`;
+    const html = emailBase(`
+<h2>Reset your password</h2>
+<p>We received a request to reset the password for your ApplyStack account.</p>
+<a href="${resetUrl}" class="btn">Reset my password →</a>
+<p>This link expires in <strong>1 hour</strong>. If you didn't request this, you can safely ignore this email — your password won't change.</p>
+<p style="color:#94a3b8;font-size:.85rem">The ApplyStack team</p>`);
+    await sendEmail(email.toLowerCase(), 'Reset your ApplyStack password', html);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+  }
+});
+
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: 'Token and new password are required.' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const result = await pool.query(
+      'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()',
+      [token]
+    );
+    if (!result.rows.length) return res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+    const userId = result.rows[0].id;
+    const hash = await bcrypt.hash(password, 12);
+    await pool.query(
+      'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+      [hash, userId]
+    );
+    res.json({ success: true, message: 'Password updated successfully. You can now sign in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Could not reset password. Please try again.' });
+  }
 });
 
 app.delete('/api/auth/account', requireAuth, async (req, res) => {
