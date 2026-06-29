@@ -550,41 +550,45 @@ var TEMPLATES = {
     hdrStyle:'plain-left', secHdr:'caps-gray', secCase:'upper', skillsRender:'inline'
   },
   midnight: {
+    // Niche: Software Engineering / Product / Startup
     FONT:'Calibri', B:20, NP:58, nameAlign:'CENTER',
     secBorder:'SINGLE', secColor:'06b6d4', secBorderSz:6,
     MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
-    order:['summary','skills','experience','tech','certs','edu'],
-    names:{ summary:'PROFILE', skills:'CORE SKILLS', experience:'EXPERIENCE', tech:'TECHNOLOGIES', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    order:['summary','tech','experience','skills','certs','edu'],
+    names:{ summary:'ENGINEERING PROFILE', skills:'COMPETENCIES', experience:'ENGINEERING EXPERIENCE', tech:'TECH STACK & TOOLS', certs:'CERTIFICATIONS', edu:'EDUCATION' },
     pvAccent:'#06b6d4',
     hdrStyle:'gradient-banner', headerBg:'linear-gradient(135deg,#0f172a,#164e63)', headerFg:'#ffffff',
-    secHdr:'color-underline', secCase:'upper', skillsRender:'pills'
+    secHdr:'color-underline', secCase:'upper', skillsRender:'tags'
   },
   ember: {
+    // Niche: Sales / Business Development / Revenue-focused roles
     FONT:'Calibri', B:20, NP:56, nameAlign:'LEFT',
     secBorder:'SINGLE', secColor:'c2410c', secBorderSz:6,
     MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
-    order:['summary','skills','experience','tech','certs','edu'],
-    names:{ summary:'PROFESSIONAL SUMMARY', skills:'KEY SKILLS', experience:'PROFESSIONAL EXPERIENCE', tech:'TOOLS & TECHNOLOGY', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    order:['summary','skills','experience','certs','tech','edu'],
+    names:{ summary:'SALES PROFILE', skills:'SALES COMPETENCIES', experience:'REVENUE EXPERIENCE', tech:'CRM & SALES TOOLS', certs:'AWARDS & CERTIFICATIONS', edu:'EDUCATION' },
     pvAccent:'#c2410c',
     hdrStyle:'accent-top', headerBg:'#c2410c',
     secHdr:'left-bar', secCase:'upper', skillsRender:'pills'
   },
   violet: {
+    // Niche: Marketing / Brand / Creative Leadership
     FONT:'Calibri', B:20, NP:58, nameAlign:'CENTER',
     secBorder:'SINGLE', secColor:'7c3aed', secBorderSz:6,
     MAR:1080, secBefore:220, secAfter:100, bodyAfter:120, roleAfter:180,
     order:['summary','skills','experience','tech','certs','edu'],
-    names:{ summary:'EXECUTIVE PROFILE', skills:'COMPETENCIES', experience:'CAREER HISTORY', tech:'TECHNICAL SKILLS', certs:'CERTIFICATIONS', edu:'EDUCATION' },
+    names:{ summary:'Brand & Marketing Profile', skills:'Marketing Competencies', experience:'Campaign & Brand Experience', tech:'Marketing Stack & Platforms', certs:'Certifications & Training', edu:'Education' },
     pvAccent:'#7c3aed',
     hdrStyle:'gradient-banner', headerBg:'linear-gradient(135deg,#4c1d95,#7c3aed)', headerFg:'#ffffff',
     secHdr:'color-underline', secCase:'title', skillsRender:'pills'
   },
   stone: {
+    // Niche: Finance / Banking / Investment / Accounting
     FONT:'Georgia', B:20, NP:56, nameAlign:'CENTER',
-    secBorder:'SINGLE', secColor:'be123c', secBorderSz:6,
+    secBorder:'DOUBLE', secColor:'be123c', secBorderSz:6,
     MAR:1080, secBefore:240, secAfter:100, bodyAfter:120, roleAfter:180,
-    order:['summary','skills','experience','tech','certs','edu'],
-    names:{ summary:'Professional Profile', skills:'Core Expertise', experience:'Professional Experience', tech:'Technical Skills', certs:'Credentials', edu:'Education' },
+    order:['summary','skills','experience','certs','tech','edu'],
+    names:{ summary:'Financial Profile', skills:'Areas of Financial Expertise', experience:'Professional Experience', tech:'Financial Systems & Tools', certs:'Licences, Designations & Credentials', edu:'Education & Qualifications' },
     pvAccent:'#be123c',
     hdrStyle:'banner', headerBg:'#292524', headerFg:'#fafaf9',
     secHdr:'dots', secCase:'title', skillsRender:'grid2'
