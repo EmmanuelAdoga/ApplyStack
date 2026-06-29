@@ -4269,12 +4269,13 @@ function openJobMatch() {
   document.getElementById('jmOverlay').classList.add('on');
   document.body.style.overflow = 'hidden';
   jmUpdateTitleHint(); // show hint on open
-  // Auto-select source based on what's loaded
-  if (extractedText && !fileBuffer) {
-    // vault text is loaded
-    jmSetSource('vault');
-  } else if (fileBuffer || extractedText) {
+  // Auto-select source based on what's loaded:
+  // fileBuffer = file was uploaded → use resume
+  // extractedText only (paste or vault-built) → use vault if vault has data, else resume
+  if (fileBuffer) {
     jmSetSource('resume');
+  } else {
+    jmSetSource('vault');
   }
 }
 

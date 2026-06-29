@@ -104,6 +104,9 @@ const pool = new Pool({
   `);
   // Unique index (idempotent)
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code);`);
+  // Job search daily counter — two columns: count + the date it was last reset
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS job_searches_today INTEGER NOT NULL DEFAULT 0;`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS job_searches_date DATE;`);
   // Career Data Vault — JSONB column on users (stored alongside the user row)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS career_vault JSONB;`);
   // Email Hiring Manager — cross-user "first come, first served" job locks
@@ -545,19 +548,20 @@ app.post('/api/claude', requireAuth, aiLimiter, async (req, res) => {
     // Free users get 3 job searches per day; Pro users are unlimited
     if (!isPro) {
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const jobSearchKey = `job_searches_${today}`;
-      const dailyCount = user[jobSearchKey] || 0;
       const FREE_JOB_SEARCH_LIMIT = 3;
+      // If the stored date is not today, reset the counter first
+      const lastDate = user.job_searches_date ? user.job_searches_date.toISOString().slice(0, 10) : null;
+      const dailyCount = (lastDate === today) ? (user.job_searches_today || 0) : 0;
       if (dailyCount >= FREE_JOB_SEARCH_LIMIT) {
         return res.status(402).json({
           error: 'upgrade_required',
           message: `You have used your ${FREE_JOB_SEARCH_LIMIT} free job searches for today. Upgrade to Pro for unlimited searches.`,
         });
       }
-      // Increment daily counter (best-effort — don't fail if DB update fails)
+      // Increment daily counter using real columns
       pool.query(
-        `UPDATE users SET "${jobSearchKey}" = COALESCE("${jobSearchKey}", 0) + 1 WHERE id = $1`,
-        [user.id]
+        `UPDATE users SET job_searches_today = $1, job_searches_date = $2 WHERE id = $3`,
+        [dailyCount + 1, today, user.id]
       ).catch(() => {});
     }
   } else if (type === 'tailor') {
