@@ -2811,6 +2811,56 @@ app.post('/api/hiring-manager/send', requireAuth, aiLimiter, async (req, res) =>
 
 
 
+// ══════════════════════════════════════════════════════════════
+//  PORTFOLIO FETCH
+//  Server-side fetches a portfolio website URL, strips HTML to
+//  plain text, and returns content suitable for vault sync or
+//  direct resume building.  No board-specific strategies needed
+//  — portfolio sites are plain HTML pages, not JS SPAs.
+// ══════════════════════════════════════════════════════════════
+app.post('/api/portfolio/fetch', requireAuth, async (req, res) => {
+  const { url } = req.body || {};
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'url is required' });
+  }
+  const cleanUrl = url.trim();
+  if (!/^https?:\/\//i.test(cleanUrl)) {
+    return res.status(400).json({ error: 'Only http/https URLs are supported.' });
+  }
+
+  try {
+    const r = await timedFetch(cleanUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+    });
+
+    if (!r.ok) {
+      return res.status(502).json({ error: `Portfolio page returned ${r.status}. Check the URL and try again.` });
+    }
+
+    const html = await r.text();
+    let text = htmlToText(html);
+
+    if (text.length < 100) {
+      return res.status(422).json({ error: 'This page does not contain enough readable text. It may be fully JavaScript-rendered. Try sharing a plain About or CV page instead.' });
+    }
+
+    // Allow up to 30 000 chars — portfolios have more content than JDs
+    if (text.length > 30000) text = text.slice(0, 30000) + '\n[…truncated]';
+    res.json({ text });
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'The portfolio page took too long to load. Try a different URL.' });
+    }
+    console.error('portfolio/fetch error:', err);
+    res.status(502).json({ error: 'Could not fetch the portfolio URL. Check that it is publicly accessible.' });
+  }
+});
+
 // ── SPA fallback ───────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

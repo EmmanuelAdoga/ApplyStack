@@ -2853,14 +2853,23 @@ function initTemplatePreviews() {
 
 // ── Upload tab switching ────────────────────────────────────────────────────
 function switchUploadTab(name) {
-  ['upload','library','linkedin','vault'].forEach(function(t) {
+  ['upload','library','linkedin','vault','portfolio'].forEach(function(t) {
     var tabEl  = document.getElementById('tab'+capitalize(t));
     var paneEl = document.getElementById('pane'+capitalize(t));
     if (tabEl)  tabEl.classList.toggle('active', t===name);
     if (paneEl) paneEl.classList.toggle('active', t===name);
   });
-  if (name === 'library') loadResumeLibrary();
-  if (name === 'vault')   openVaultPane();
+  if (name === 'library')   loadResumeLibrary();
+  if (name === 'vault')     openVaultPane();
+  if (name === 'portfolio') {
+    // Pre-fill portfolio URL from vault if one is saved
+    var purl = document.getElementById('portfolioSourceUrl');
+    if (purl && !purl.value) {
+      var vurl = document.getElementById('vaultPortfolioUrl');
+      if (vurl && vurl.value) purl.value = vurl.value;
+      else if (_vault && _vault.portfolioUrl) purl.value = _vault.portfolioUrl;
+    }
+  }
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -3739,6 +3748,7 @@ function readVaultFromForm() {
     languages:   (vaultEl('vLanguages')   || {}).value || '',
     summary:     (vaultEl('vSummary')     || {}).value || '',
     skills:      (vaultEl('vSkills')      || {}).value || '',
+    portfolioUrl: (document.getElementById('vaultPortfolioUrl') || {}).value || _vault.portfolioUrl || '',
     jobs: [], education: [], certs: []
   };
 
@@ -3803,6 +3813,10 @@ function populateVaultForm(vault) {
   set('vLanguages',   vault.languages);
   set('vSummary',     vault.summary);
   set('vSkills',      vault.skills);
+
+  // Restore portfolio URL input if present
+  var purlInput = document.getElementById('vaultPortfolioUrl');
+  if (purlInput && vault.portfolioUrl) purlInput.value = vault.portfolioUrl;
 
   // Clear existing dynamic entries
   var clearSection = function(listId, emptyId, addBtnClass) {
@@ -3976,6 +3990,83 @@ function useVaultAsResume() {
   // Trigger match score update if JD is present
   var jdEl = vaultEl('jd');
   if (jdEl && jdEl.value.trim().length > 80) setTimeout(checkMatchScore, 300);
+}
+
+// ── Use portfolio URL as resume source ─────────────────────────
+async function usePortfolioAsResume() {
+  var urlInput   = document.getElementById('portfolioSourceUrl');
+  var progressEl = document.getElementById('portfolioSourceProgress');
+  var statusEl   = document.getElementById('portfolioSourceStatus');
+  var btn        = document.getElementById('portfolioUseBtn');
+
+  var url = (urlInput ? urlInput.value : '').trim();
+  if (!url) {
+    showAlert('error', 'No URL entered', 'Paste your portfolio URL first.');
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    showAlert('error', 'Invalid URL', 'URL must start with http:// or https://');
+    return;
+  }
+
+  var tok = getToken();
+  if (!tok) { showAlert('warn', 'Sign in required', 'Please sign in first.'); return; }
+
+  if (progressEl) { progressEl.style.display = 'flex'; }
+  if (statusEl)   statusEl.textContent = 'Fetching your portfolio…';
+  if (btn) btn.disabled = true;
+
+  try {
+    var fetchRes = await fetch('/api/portfolio/fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({ url: url })
+    });
+    if (!fetchRes.ok) {
+      var fe = await fetchRes.json().catch(function(){ return {}; });
+      throw new Error(fe.error || 'Could not fetch portfolio (HTTP ' + fetchRes.status + ')');
+    }
+    var fetchData = await fetchRes.json();
+    var text = (fetchData.text || '').trim();
+    if (text.length < 100) throw new Error('Not enough readable text found on that page.');
+
+    // Save as resume source
+    extractedText = text;
+    fileBuffer    = null;
+
+    // Update the upload pane badge
+    var badge     = document.getElementById('badge');
+    var badgeName = document.getElementById('badgeName');
+    var dz        = document.getElementById('dz');
+    var dzIcon    = document.getElementById('dzIcon');
+    var dzTitle   = document.getElementById('dzTitle');
+
+    if (badgeName) badgeName.textContent = '🌐 Portfolio (' + (new URL(url)).hostname + ')';
+    if (badge)     badge.classList.add('on');
+    if (dz)        dz.classList.add('loaded');
+    if (dzIcon)    dzIcon.textContent = '🌐';
+    if (dzTitle)   dzTitle.textContent = 'Portfolio loaded';
+
+    // Also save URL to vault data for easy re-sync
+    _vault.portfolioUrl = url;
+    var vaultUrlInput = document.getElementById('vaultPortfolioUrl');
+    if (vaultUrlInput && !vaultUrlInput.value) vaultUrlInput.value = url;
+
+    // Switch to upload tab so badge is visible
+    switchUploadTab('upload');
+    showAlert('info', 'Portfolio loaded!', 'Your portfolio site is ready as a resume source. Fill in the job details and hit Build Resume.');
+
+    // Trigger match score if JD already present
+    var jdEl = document.getElementById('jd');
+    if (jdEl && jdEl.value.trim().length > 80) setTimeout(checkMatchScore, 300);
+
+  } catch (err) {
+    console.error('Portfolio-as-resume error:', err);
+    showAlert('error', 'Could not load portfolio', err.message || 'Try again or use a different URL.');
+  } finally {
+    if (progressEl) progressEl.style.display = 'none';
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ── Load vault from server (called when vault tab is opened) ──
@@ -4190,6 +4281,169 @@ async function importResumeToVault(file) {
     if (progressEl) progressEl.style.display = 'none';
     if (importBar)  importBar.style.display  = 'flex';
     showAlert('error', 'Import failed', err.message || 'Could not parse resume. Try again or fill in manually.');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SYNC PORTFOLIO WEBSITE → CAREER VAULT
+// ─────────────────────────────────────────────────────────────
+async function syncPortfolioToVault() {
+  var urlInput    = document.getElementById('vaultPortfolioUrl');
+  var progressEl  = document.getElementById('vaultPortfolioProgress');
+  var statusEl    = document.getElementById('vaultPortfolioStatus');
+  var portfolioBar = document.getElementById('vaultPortfolioBar');
+  var btn         = document.getElementById('vaultPortfolioBtn');
+
+  var url = (urlInput ? urlInput.value : '').trim();
+  if (!url) {
+    showAlert('error', 'No URL entered', 'Paste your portfolio URL first.');
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    showAlert('error', 'Invalid URL', 'URL must start with http:// or https://');
+    return;
+  }
+
+  // Show progress
+  if (progressEl)  progressEl.style.display  = 'flex';
+  if (portfolioBar) portfolioBar.style.display = 'none';
+  if (statusEl)    statusEl.textContent = 'Fetching your portfolio…';
+  if (btn) btn.disabled = true;
+
+  try {
+    var tok = getToken();
+    if (!tok) throw new Error('Please sign in first.');
+
+    // Step 1: Fetch portfolio text from backend
+    var fetchRes = await fetch('/api/portfolio/fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({ url: url })
+    });
+    if (!fetchRes.ok) {
+      var fe = await fetchRes.json().catch(function(){ return {}; });
+      throw new Error(fe.error || 'Could not fetch portfolio (HTTP ' + fetchRes.status + ')');
+    }
+    var fetchData = await fetchRes.json();
+    var text = (fetchData.text || '').trim();
+    if (text.length < 100) throw new Error('Not enough readable text found on that page.');
+
+    // Step 2: Send to Claude to parse into vault structure
+    if (statusEl) statusEl.textContent = 'AI is reading your portfolio…';
+
+    var sys = [
+      'You are an expert career data extractor. Your job is to extract EVERY piece of career data from a portfolio website into structured JSON.',
+      'You must be EXHAUSTIVE — capture every single job, every project, every education entry, every certification, every skill.',
+      'NEVER skip, truncate, summarize, or abbreviate anything.',
+      'Return ONLY valid JSON — no markdown fencing, no commentary, no explanation before or after the JSON.',
+    ].join(' ');
+
+    var prompt = [
+      'Parse this COMPLETE portfolio website content into structured career data. Read the ENTIRE text carefully from start to end before generating output.',
+      '',
+      '=== COMPLETE PORTFOLIO CONTENT (read every line) ===',
+      text.slice(0, 30000),
+      '=== END OF PORTFOLIO CONTENT ===',
+      '',
+      'CRITICAL INSTRUCTIONS:',
+      '1. Extract EVERY job/position mentioned — do NOT stop after 2-3 roles. Count them all.',
+      '2. For each job, extract EVERY achievement / project / responsibility mentioned VERBATIM.',
+      '3. Extract ALL education entries (degrees, diplomas, bootcamps, courses).',
+      '4. Extract ALL certifications, licenses, and professional credentials.',
+      '5. Extract ALL skills mentioned anywhere on the page.',
+      '',
+      'Return this exact JSON structure (fill every field you can find):',
+      '{',
+      '  "name": "Full Name",',
+      '  "email": "email@example.com or empty string",',
+      '  "phone": "phone number or empty string",',
+      '  "location": "City, Country or empty string",',
+      '  "linkedin": "linkedin URL or empty string",',
+      '  "website": "' + url + '",',
+      '  "summary": "Bio / About paragraph if present, otherwise empty string",',
+      '  "skills": "Skill1, Skill2, Skill3, ... (ALL skills as comma-separated string)",',
+      '  "jobs": [',
+      '    {',
+      '      "title": "Exact Job Title",',
+      '      "company": "Company Name",',
+      '      "location": "City, State or Remote",',
+      '      "start": "Mon YYYY or empty",',
+      '      "end": "Mon YYYY, Present, or empty",',
+      '      "bullets": ["Achievement/responsibility 1", "Achievement/responsibility 2"]',
+      '    }',
+      '  ],',
+      '  "education": [',
+      '    { "degree": "Full degree name", "school": "Institution Name", "year": "Year or empty", "gpa": "GPA or empty" }',
+      '  ],',
+      '  "certs": [',
+      '    { "name": "Full Certification Name", "issuer": "Issuing Organization", "year": "Year or empty" }',
+      '  ]',
+      '}',
+      '',
+      '- Return ONLY the JSON object. No markdown. No ```.',
+    ].join('\n');
+
+    var claudeRes = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + tok,
+      },
+      body: JSON.stringify({
+        type: 'score',
+        system: sys,
+        userMsg: prompt,
+        maxTokens: 16000,
+        model: 'claude-sonnet-4-6'
+      })
+    });
+
+    if (!claudeRes.ok) {
+      var ce = await claudeRes.json().catch(function(){ return {}; });
+      throw new Error(ce.error || 'AI parsing failed (HTTP ' + claudeRes.status + ')');
+    }
+
+    var data = await claudeRes.json();
+    var rawText = (data.text || '').trim();
+
+    // Extract JSON robustly
+    var jsonStr = null;
+    var fenced = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) {
+      jsonStr = fenced[1].trim();
+    } else {
+      var startIdx = rawText.indexOf('{');
+      if (startIdx !== -1) jsonStr = rawText.slice(startIdx, rawText.lastIndexOf('}') + 1);
+    }
+    if (!jsonStr) throw new Error('AI did not return valid JSON. Please try again.');
+
+    var parsed = JSON.parse(jsonStr);
+
+    // Assign IDs
+    var jobId = 0, eduId = 0, certId = 0;
+    (parsed.jobs || []).forEach(function(j) { j.id = 'j' + (++jobId); });
+    (parsed.education || []).forEach(function(e) { e.id = 'e' + (++eduId); });
+    (parsed.certs || []).forEach(function(c) { c.id = 'c' + (++certId); });
+
+    // Populate vault form
+    if (statusEl) statusEl.textContent = 'Populating your vault…';
+    populateVaultForm(parsed);
+    setVaultStatusUI(vaultComputeStatus());
+
+    // Persist the portfolio URL in vault data
+    _vault.portfolioUrl = url;
+
+    if (progressEl)   progressEl.style.display   = 'none';
+    if (portfolioBar) portfolioBar.style.display  = 'flex';
+    if (btn) btn.disabled = false;
+    showAlert('info', 'Vault synced from portfolio!', 'AI has read your portfolio site and filled in the vault. Review the entries, then hit Save Vault.');
+
+  } catch (err) {
+    console.error('Portfolio sync error:', err);
+    if (progressEl)   progressEl.style.display   = 'none';
+    if (portfolioBar) portfolioBar.style.display  = 'flex';
+    if (btn) btn.disabled = false;
+    showAlert('error', 'Sync failed', err.message || 'Could not read your portfolio. Try again or fill in manually.');
   }
 }
 
