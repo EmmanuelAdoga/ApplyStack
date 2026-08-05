@@ -2864,10 +2864,8 @@ function switchUploadTab(name) {
   if (name === 'portfolio') {
     // Pre-fill portfolio URL from vault if one is saved
     var purl = document.getElementById('portfolioSourceUrl');
-    if (purl && !purl.value) {
-      var vurl = document.getElementById('vaultPortfolioUrl');
-      if (vurl && vurl.value) purl.value = vurl.value;
-      else if (_vault && _vault.portfolioUrl) purl.value = _vault.portfolioUrl;
+    if (purl && !purl.value && _vault && _vault.portfolioUrl) {
+      purl.value = _vault.portfolioUrl;
     }
   }
 }
@@ -3748,7 +3746,7 @@ function readVaultFromForm() {
     languages:   (vaultEl('vLanguages')   || {}).value || '',
     summary:     (vaultEl('vSummary')     || {}).value || '',
     skills:      (vaultEl('vSkills')      || {}).value || '',
-    portfolioUrl: (document.getElementById('vaultPortfolioUrl') || {}).value || _vault.portfolioUrl || '',
+    portfolioUrl: (document.getElementById('portfolioSourceUrl') || {}).value || _vault.portfolioUrl || '',
     jobs: [], education: [], certs: []
   };
 
@@ -3815,7 +3813,7 @@ function populateVaultForm(vault) {
   set('vSkills',      vault.skills);
 
   // Restore portfolio URL input if present
-  var purlInput = document.getElementById('vaultPortfolioUrl');
+  var purlInput = document.getElementById('portfolioSourceUrl');
   if (purlInput && vault.portfolioUrl) purlInput.value = vault.portfolioUrl;
 
   // Clear existing dynamic entries
@@ -3997,7 +3995,8 @@ async function usePortfolioAsResume() {
   var urlInput   = document.getElementById('portfolioSourceUrl');
   var progressEl = document.getElementById('portfolioSourceProgress');
   var statusEl   = document.getElementById('portfolioSourceStatus');
-  var btn        = document.getElementById('portfolioUseBtn');
+  var useBtn     = document.getElementById('portfolioUseBtn');
+  var syncBtn    = document.getElementById('portfolioSyncBtn');
 
   var url = (urlInput ? urlInput.value : '').trim();
   if (!url) {
@@ -4012,9 +4011,10 @@ async function usePortfolioAsResume() {
   var tok = getToken();
   if (!tok) { showAlert('warn', 'Sign in required', 'Please sign in first.'); return; }
 
-  if (progressEl) { progressEl.style.display = 'flex'; }
+  if (progressEl) progressEl.style.display = 'flex';
   if (statusEl)   statusEl.textContent = 'Fetching your portfolio…';
-  if (btn) btn.disabled = true;
+  if (useBtn)  useBtn.disabled  = true;
+  if (syncBtn) syncBtn.disabled = true;
 
   try {
     var fetchRes = await fetch('/api/portfolio/fetch', {
@@ -4049,8 +4049,6 @@ async function usePortfolioAsResume() {
 
     // Also save URL to vault data for easy re-sync
     _vault.portfolioUrl = url;
-    var vaultUrlInput = document.getElementById('vaultPortfolioUrl');
-    if (vaultUrlInput && !vaultUrlInput.value) vaultUrlInput.value = url;
 
     // Switch to upload tab so badge is visible
     switchUploadTab('upload');
@@ -4065,7 +4063,8 @@ async function usePortfolioAsResume() {
     showAlert('error', 'Could not load portfolio', err.message || 'Try again or use a different URL.');
   } finally {
     if (progressEl) progressEl.style.display = 'none';
-    if (btn) btn.disabled = false;
+    if (useBtn)  useBtn.disabled  = false;
+    if (syncBtn) syncBtn.disabled = false;
   }
 }
 
@@ -4288,11 +4287,11 @@ async function importResumeToVault(file) {
 //  SYNC PORTFOLIO WEBSITE → CAREER VAULT
 // ─────────────────────────────────────────────────────────────
 async function syncPortfolioToVault() {
-  var urlInput    = document.getElementById('vaultPortfolioUrl');
-  var progressEl  = document.getElementById('vaultPortfolioProgress');
-  var statusEl    = document.getElementById('vaultPortfolioStatus');
-  var portfolioBar = document.getElementById('vaultPortfolioBar');
-  var btn         = document.getElementById('vaultPortfolioBtn');
+  var urlInput   = document.getElementById('portfolioSourceUrl');
+  var progressEl = document.getElementById('portfolioSourceProgress');
+  var statusEl   = document.getElementById('portfolioSourceStatus');
+  var useBtn     = document.getElementById('portfolioUseBtn');
+  var syncBtn    = document.getElementById('portfolioSyncBtn');
 
   var url = (urlInput ? urlInput.value : '').trim();
   if (!url) {
@@ -4305,10 +4304,10 @@ async function syncPortfolioToVault() {
   }
 
   // Show progress
-  if (progressEl)  progressEl.style.display  = 'flex';
-  if (portfolioBar) portfolioBar.style.display = 'none';
-  if (statusEl)    statusEl.textContent = 'Fetching your portfolio…';
-  if (btn) btn.disabled = true;
+  if (progressEl) progressEl.style.display = 'flex';
+  if (statusEl)   statusEl.textContent = 'Fetching your portfolio…';
+  if (useBtn)  useBtn.disabled  = true;
+  if (syncBtn) syncBtn.disabled = true;
 
   try {
     var tok = getToken();
@@ -4433,16 +4432,16 @@ async function syncPortfolioToVault() {
     // Persist the portfolio URL in vault data
     _vault.portfolioUrl = url;
 
-    if (progressEl)   progressEl.style.display   = 'none';
-    if (portfolioBar) portfolioBar.style.display  = 'flex';
-    if (btn) btn.disabled = false;
+    if (progressEl) progressEl.style.display = 'none';
+    if (useBtn)  useBtn.disabled  = false;
+    if (syncBtn) syncBtn.disabled = false;
     showAlert('info', 'Vault synced from portfolio!', 'AI has read your portfolio site and filled in the vault. Review the entries, then hit Save Vault.');
 
   } catch (err) {
     console.error('Portfolio sync error:', err);
-    if (progressEl)   progressEl.style.display   = 'none';
-    if (portfolioBar) portfolioBar.style.display  = 'flex';
-    if (btn) btn.disabled = false;
+    if (progressEl) progressEl.style.display = 'none';
+    if (useBtn)  useBtn.disabled  = false;
+    if (syncBtn) syncBtn.disabled = false;
     showAlert('error', 'Sync failed', err.message || 'Could not read your portfolio. Try again or fill in manually.');
   }
 }

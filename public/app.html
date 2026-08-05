@@ -2233,30 +2233,6 @@
         <span id="vaultImportStatus">Extracting text from file…</span>
       </div>
 
-      <!-- ── Import from portfolio website ── -->
-      <div class="vault-import-bar" id="vaultPortfolioBar" style="margin-top:8px">
-        <div class="vault-import-left">
-          <span style="font-size:18px">🌐</span>
-          <div>
-            <div class="vault-import-title">Sync from portfolio website</div>
-            <div class="vault-import-sub">Paste your portfolio URL · AI reads your site and fills in the vault</div>
-          </div>
-        </div>
-        <button class="vault-import-btn" id="vaultPortfolioBtn" onclick="syncPortfolioToVault()" style="border:none;cursor:pointer">
-          🔗 Sync Now
-        </button>
-      </div>
-      <div style="padding:4px 0 0">
-        <input type="url" id="vaultPortfolioUrl" placeholder="https://yourportfolio.com"
-          style="width:100%;box-sizing:border-box;border:1px solid var(--gray200);border-radius:8px;padding:7px 12px;font-size:.82rem;font-family:inherit;color:var(--navy);outline:none;transition:border-color .15s"
-          onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--gray200)'"
-          oninput="_vault.portfolioUrl=this.value" />
-      </div>
-      <div id="vaultPortfolioProgress" class="vault-import-progress" style="display:none">
-        <span class="spin" style="width:16px;height:16px;border-width:2px"></span>
-        <span id="vaultPortfolioStatus">Fetching your portfolio…</span>
-      </div>
-
       <!-- ── Completeness Meter ── -->
       <div class="vault-completeness">
         <div class="vcb-track"><div class="vcb-fill vcb-red" id="vCompletenessBar" style="width:0%"></div></div>
@@ -2399,19 +2375,21 @@
     <!-- Pane 5: Portfolio Website -->
     <div class="upload-pane" id="panePortfolio">
       <div style="padding:8px 0 16px">
-        <div style="font-weight:600;font-size:.95rem;color:var(--navy);margin-bottom:6px">Use your portfolio website as a resume source</div>
+        <div style="font-weight:600;font-size:.95rem;color:var(--navy);margin-bottom:4px">Your portfolio website</div>
         <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px">
-          AI will read your portfolio site and extract your career content to build a tailored resume.
-          Your portfolio URL is also saved in the Career Vault so you can re-sync anytime.
+          Paste your portfolio URL — AI reads your site and extracts your career data.
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="url" id="portfolioSourceUrl" placeholder="https://yourportfolio.com"
-            style="flex:1;border:1.5px solid var(--gray200);border-radius:8px;padding:9px 13px;font-size:.84rem;font-family:inherit;color:var(--navy);outline:none;transition:border-color .15s"
-            onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--gray200)'"
-            onkeydown="if(event.key==='Enter') usePortfolioAsResume()" />
+        <input type="url" id="portfolioSourceUrl" placeholder="https://yourportfolio.com"
+          style="width:100%;box-sizing:border-box;border:1.5px solid var(--gray200);border-radius:8px;padding:9px 13px;font-size:.84rem;font-family:inherit;color:var(--navy);outline:none;transition:border-color .15s;margin-bottom:10px"
+          onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--gray200)'" />
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary" id="portfolioUseBtn" onclick="usePortfolioAsResume()"
             style="white-space:nowrap;padding:9px 18px;font-size:.84rem">
             🌐 Use as Resume
+          </button>
+          <button class="btn" id="portfolioSyncBtn" onclick="syncPortfolioToVault()"
+            style="white-space:nowrap;padding:9px 18px;font-size:.84rem;background:var(--gray100);color:var(--navy);border:1.5px solid var(--gray200);border-radius:8px;cursor:pointer;font-weight:600">
+            🗄️ Sync to Vault
           </button>
         </div>
         <div id="portfolioSourceProgress" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:.82rem;color:var(--muted)">
