@@ -2853,20 +2853,27 @@ function initTemplatePreviews() {
 
 // ── Upload tab switching ────────────────────────────────────────────────────
 function switchUploadTab(name) {
-  ['upload','library','linkedin','vault','portfolio'].forEach(function(t) {
-    var tabEl  = document.getElementById('tab'+capitalize(t));
-    var paneEl = document.getElementById('pane'+capitalize(t));
-    if (tabEl)  tabEl.classList.toggle('active', t===name);
-    if (paneEl) paneEl.classList.toggle('active', t===name);
+  var tabs  = ['upload','library','linkedin','vault','portfolio'];
+  tabs.forEach(function(t) {
+    var tabEl  = document.getElementById('tab'  + capitalize(t));
+    var paneEl = document.getElementById('pane' + capitalize(t));
+    var isActive = (t === name);
+    if (tabEl)  tabEl.classList.toggle('active', isActive);
+    if (paneEl) {
+      paneEl.classList.toggle('active', isActive);
+      // Force display via inline style so there's no CSS-specificity ambiguity
+      if (isActive) {
+        paneEl.style.display = (t === 'vault') ? 'flex' : 'block';
+      } else {
+        paneEl.style.display = 'none';
+      }
+    }
   });
   if (name === 'library')   loadResumeLibrary();
   if (name === 'vault')     openVaultPane();
   if (name === 'portfolio') {
-    // Pre-fill portfolio URL from vault if one is saved
     var purl = document.getElementById('portfolioSourceUrl');
-    if (purl && !purl.value && _vault && _vault.portfolioUrl) {
-      purl.value = _vault.portfolioUrl;
-    }
+    if (purl && !purl.value && _vault && _vault.portfolioUrl) purl.value = _vault.portfolioUrl;
   }
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
