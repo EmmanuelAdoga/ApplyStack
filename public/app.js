@@ -2802,53 +2802,69 @@ function closeTracker() { document.getElementById('trackerSidebar').classList.re
 // ── NEW FEATURES: RESUME LIBRARY · MATCH SCORE · PDF EXPORT · LINKEDIN ───────
 // ══════════════════════════════════════════════════════════════════════════════
 
-// ── Ensure portfolio tab + pane exist (create dynamically if HTML is old) ────
-document.addEventListener('DOMContentLoaded', function() {
-  // Inject Portfolio tab button if missing
-  if (!document.getElementById('tabPortfolio')) {
-    var tabs = document.querySelector('.upload-tabs');
-    if (tabs) {
-      var tabBtn = document.createElement('button');
-      tabBtn.className = 'upload-tab';
-      tabBtn.id = 'tabPortfolio';
-      tabBtn.innerHTML = '🌐 Portfolio';
-      tabBtn.onclick = function() { switchUploadTab('portfolio'); };
-      tabs.appendChild(tabBtn);
-    }
-  }
+// ── Portfolio tab: fully JS-driven, bypasses upload-pane CSS entirely ─────────
+(function() {
+  function buildPortfolioSection() {
+    var existing = document.getElementById('portfolioSection');
+    if (existing) return existing;
 
-  // Inject Portfolio pane if missing
-  if (!document.getElementById('panePortfolio')) {
-    var vaultPane = document.getElementById('paneVault');
-    var pane = document.createElement('div');
-    pane.className = 'upload-pane';
-    pane.id = 'panePortfolio';
-    pane.style.display = 'none';
-    pane.innerHTML = [
-      '<div style="padding:8px 0 16px">',
-      '  <div style="font-weight:600;font-size:.95rem;color:var(--navy);margin-bottom:4px">Your portfolio website</div>',
-      '  <div style="font-size:.82rem;color:#6b7280;margin-bottom:14px">Paste your portfolio URL — AI reads your site and extracts your career data.</div>',
-      '  <input type="url" id="portfolioSourceUrl" placeholder="https://yourportfolio.com"',
-      '    style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 13px;font-size:.84rem;font-family:inherit;color:#1e293b;outline:none;transition:border-color .15s;margin-bottom:10px" />',
-      '  <div style="display:flex;gap:8px;flex-wrap:wrap">',
-      '    <button id="portfolioUseBtn" onclick="usePortfolioAsResume()"',
-      '      style="white-space:nowrap;padding:9px 18px;font-size:.84rem;background:#5b63f0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">',
-      '      🌐 Use as Resume</button>',
-      '    <button id="portfolioSyncBtn" onclick="syncPortfolioToVault()"',
-      '      style="white-space:nowrap;padding:9px 18px;font-size:.84rem;background:#f3f4f6;color:#1e293b;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;font-weight:600">',
-      '      🗄️ Sync to Vault</button>',
-      '  </div>',
-      '  <div id="portfolioSourceProgress" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:.82rem;color:#6b7280">',
-      '    <span class="spin" style="width:16px;height:16px;border-width:2px"></span>',
-      '    <span id="portfolioSourceStatus">Fetching your portfolio…</span>',
-      '  </div>',
+    // Create the section div — independent of upload-pane CSS
+    var sec = document.createElement('div');
+    sec.id = 'portfolioSection';
+    sec.style.cssText = 'display:none;padding:16px 0 8px';
+    sec.innerHTML = [
+      '<div style="font-weight:600;font-size:.95rem;color:#1e293b;margin-bottom:4px">Your portfolio website</div>',
+      '<div style="font-size:.82rem;color:#6b7280;margin-bottom:12px">Paste your portfolio URL — AI reads your site and extracts your career data to build your resume.</div>',
+      '<input type="url" id="portfolioSourceUrl" placeholder="https://yourportfolio.com"',
+      '  style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:10px 14px;font-size:.85rem;font-family:inherit;color:#1e293b;outline:none;margin-bottom:12px;display:block"',
+      '  onfocus="this.style.borderColor=\'#5b63f0\'" onblur="this.style.borderColor=\'#d1d5db\'" />',
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">',
+      '  <button id="portfolioUseBtn" onclick="usePortfolioAsResume()"',
+      '    style="padding:10px 20px;font-size:.84rem;background:#5b63f0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">',
+      '    🌐 Use as Resume',
+      '  </button>',
+      '  <button id="portfolioSyncBtn" onclick="syncPortfolioToVault()"',
+      '    style="padding:10px 20px;font-size:.84rem;background:#f3f4f6;color:#1e293b;border:1.5px solid #d1d5db;border-radius:8px;cursor:pointer;font-weight:600">',
+      '    🗄️ Sync to Vault',
+      '  </button>',
+      '</div>',
+      '<div id="portfolioSourceProgress" style="display:none;align-items:center;gap:8px;margin-top:12px;font-size:.82rem;color:#6b7280">',
+      '  <span class="spin" style="width:16px;height:16px;border-width:2px;display:inline-block"></span>',
+      '  <span id="portfolioSourceStatus">Fetching your portfolio…</span>',
       '</div>'
     ].join('\n');
-    if (vaultPane && vaultPane.parentNode) {
-      vaultPane.parentNode.insertBefore(pane, vaultPane.nextSibling);
+
+    // Insert right after the upload-tabs bar (always present in HTML)
+    var tabs = document.querySelector('.upload-tabs');
+    if (tabs && tabs.parentNode) {
+      tabs.parentNode.insertBefore(sec, tabs.nextSibling);
     }
+    return sec;
   }
-});
+
+  function ensurePortfolioTab() {
+    if (document.getElementById('tabPortfolio')) return;
+    var tabs = document.querySelector('.upload-tabs');
+    if (!tabs) return;
+    var btn = document.createElement('button');
+    btn.className = 'upload-tab';
+    btn.id = 'tabPortfolio';
+    btn.textContent = '🌐 Portfolio';
+    btn.onclick = function() { switchUploadTab('portfolio'); };
+    tabs.appendChild(btn);
+  }
+
+  function init() {
+    ensurePortfolioTab();
+    buildPortfolioSection();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 
 // Wire up new features once DOM ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -2901,15 +2917,14 @@ function initTemplatePreviews() {
 
 // ── Upload tab switching ────────────────────────────────────────────────────
 function switchUploadTab(name) {
-  var tabs  = ['upload','library','linkedin','vault','portfolio'];
-  tabs.forEach(function(t) {
+  // Toggle the standard upload panes (upload/library/linkedin/vault)
+  ['upload','library','linkedin','vault'].forEach(function(t) {
     var tabEl  = document.getElementById('tab'  + capitalize(t));
     var paneEl = document.getElementById('pane' + capitalize(t));
     var isActive = (t === name);
     if (tabEl)  tabEl.classList.toggle('active', isActive);
     if (paneEl) {
       paneEl.classList.toggle('active', isActive);
-      // Force display via inline style so there's no CSS-specificity ambiguity
       if (isActive) {
         paneEl.style.display = (t === 'vault') ? 'flex' : 'block';
       } else {
@@ -2917,6 +2932,14 @@ function switchUploadTab(name) {
       }
     }
   });
+
+  // Portfolio tab: toggle the independent portfolioSection div
+  var tabPort = document.getElementById('tabPortfolio');
+  var portSec = document.getElementById('portfolioSection');
+  var isPortfolio = (name === 'portfolio');
+  if (tabPort) tabPort.classList.toggle('active', isPortfolio);
+  if (portSec) portSec.style.display = isPortfolio ? 'block' : 'none';
+
   if (name === 'library')   loadResumeLibrary();
   if (name === 'vault')     openVaultPane();
   if (name === 'portfolio') {
