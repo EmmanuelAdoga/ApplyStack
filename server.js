@@ -1037,9 +1037,10 @@ app.post('/api/admin/generate-code', requireAdmin, async (req, res) => {
       Math.random().toString(36).slice(2,6),
     ].join('-').toUpperCase();
 
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     const result = await pool.query(
-      `INSERT INTO beta_codes (code, expires_at) VALUES ($1, NOW() + ($2 * INTERVAL '1 day')) RETURNING *`,
-      [code, days]
+      `INSERT INTO beta_codes (code, expires_at) VALUES ($1, $2) RETURNING *`,
+      [code, expiresAt]
     );
     res.json({ code: result.rows[0] });
   } catch (err) {

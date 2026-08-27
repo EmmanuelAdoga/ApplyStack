@@ -226,7 +226,9 @@
   }
 
   function adminFetch(url, opts) {
-    return fetch(url, Object.assign({ headers: { 'x-admin-secret': adminSecret } }, opts || {}))
+    opts = opts || {};
+    var mergedHeaders = Object.assign({ 'x-admin-secret': adminSecret }, opts.headers || {});
+    return fetch(url, Object.assign({}, opts, { headers: mergedHeaders }))
       .then(function(r) {
         if (r.status === 403) throw new Error('Forbidden');
         return r.json();
