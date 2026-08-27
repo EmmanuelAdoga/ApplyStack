@@ -118,9 +118,25 @@
 
   <!-- Generate code -->
   <div class="card">
-    <div class="card-title">🎟️ Generate Beta Code</div>
-    <div class="card-sub">Each code gives a new user full Pro access for 24 hours. Single-use · once redeemed it cannot be reused.</div>
+    <div class="card-title">🎟️ Generate Access Code</div>
+    <div class="card-sub">Single-use · once redeemed it cannot be reused. Choose how long the code grants Pro access.</div>
     <div id="genAlert" class="alert error" style="display:none;"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:600;color:#374151">Duration:</label>
+      <select id="codeDuration" style="border:1.5px solid #d1d5db;border-radius:8px;padding:7px 12px;font-size:13px;font-family:inherit;color:#1e293b;background:#fff;cursor:pointer">
+        <option value="1">1 day</option>
+        <option value="7">1 week (7 days)</option>
+        <option value="30" selected>1 month (30 days)</option>
+        <option value="90">3 months (90 days)</option>
+        <option value="365">1 year (365 days)</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <div id="customDaysWrap" style="display:none;align-items:center;gap:6px">
+        <input type="number" id="customDays" min="1" max="365" value="14"
+          style="width:70px;border:1.5px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;color:#1e293b" />
+        <span style="font-size:13px;color:#6b7280">days</span>
+      </div>
+    </div>
     <div class="gen-area">
       <div class="generated-code" id="generatedCode">·</div>
       <button class="btn btn-green btn-sm" onclick="generateCode()">⚡ Generate New Code</button>
@@ -283,10 +299,33 @@
     });
   }
 
+  // Show/hide custom days input
+  document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.getElementById('codeDuration');
+    if (sel) sel.addEventListener('change', function() {
+      var wrap = document.getElementById('customDaysWrap');
+      if (wrap) wrap.style.display = this.value === 'custom' ? 'flex' : 'none';
+    });
+  });
+
   function generateCode() {
-    adminFetch('/api/admin/generate-code', { method: 'POST' }).then(function(data) {
+    var sel = document.getElementById('codeDuration');
+    var days = 1;
+    if (sel) {
+      if (sel.value === 'custom') {
+        days = parseInt(document.getElementById('customDays').value) || 1;
+      } else {
+        days = parseInt(sel.value) || 1;
+      }
+    }
+    adminFetch('/api/admin/generate-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days: days })
+    }).then(function(data) {
       var code = data.code.code;
-      document.getElementById('generatedCode').textContent = code;
+      var label = days === 1 ? '1 day' : days === 7 ? '1 week' : days === 30 ? '1 month' : days + ' days';
+      document.getElementById('generatedCode').textContent = code + '  (' + label + ')';
       document.getElementById('copyBtn').style.display = 'inline-block';
       document.getElementById('copyBtn').className = 'copy-btn';
       document.getElementById('copyBtn').textContent = 'Copy';
@@ -299,7 +338,9 @@
   }
 
   function copyCode() {
-    var code = document.getElementById('generatedCode').textContent;
+    // Strip the duration label e.g. "XXXX-YYYY-ZZZZ  (1 month)" → just the code
+    var raw = document.getElementById('generatedCode').textContent;
+    var code = raw.split('(')[0].trim();
     navigator.clipboard.writeText(code).then(function() {
       var btn = document.getElementById('copyBtn');
       btn.textContent = '✓ Copied!';

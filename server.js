@@ -1027,9 +1027,10 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// Generate a new beta code (24h expiry)
+// Generate a new beta code (custom expiry: default 1 day)
 app.post('/api/admin/generate-code', requireAdmin, async (req, res) => {
   try {
+    const days = Math.max(1, Math.min(365, parseInt(req.body && req.body.days) || 1));
     const code = [
       Math.random().toString(36).slice(2,6),
       Math.random().toString(36).slice(2,6),
@@ -1037,8 +1038,8 @@ app.post('/api/admin/generate-code', requireAdmin, async (req, res) => {
     ].join('-').toUpperCase();
 
     const result = await pool.query(
-      `INSERT INTO beta_codes (code, expires_at) VALUES ($1, NOW() + INTERVAL '24 hours') RETURNING *`,
-      [code]
+      `INSERT INTO beta_codes (code, expires_at) VALUES ($1, NOW() + ($2 || ' days')::INTERVAL) RETURNING *`,
+      [code, days]
     );
     res.json({ code: result.rows[0] });
   } catch (err) {
