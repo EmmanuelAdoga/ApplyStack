@@ -651,9 +651,9 @@
 //  Reads/writes from the same localStorage key as the sidebar
 // ══════════════════════════════════════════════════════════════
 
-var TRACKER_KEY = 'proresume_tracker_v2';
+var _entries      = [];   // in-memory cache — loaded from API on init
 var _activeFilter = 'All';
-var _detailId = null;
+var _detailId     = null;
 
 // Temp file store (before saving)
 var _pendingResume = null;
@@ -679,35 +679,103 @@ var STATUS_BG = {
 };
 var STATUSES = ['Applied','Phone Screen','Interview','Final Round','Offer','Rejected','Withdrawn'];
 
-function load() {
-  try { return JSON.parse(localStorage.getItem(TRACKER_KEY)) || []; } catch(e) { return []; }
-}
-function save(entries) {
-  try { localStorage.setItem(TRACKER_KEY, JSON.stringify(entries)); }
-  catch(e) { alert('Storage limit reached. Try removing older applications.'); }
+// ── API helpers ────────────────────────────────────────────────
+function load() { return _entries; }  // synchronous access to cached data
+
+async function trackerApi(method, path, body) {
+  var token = localStorage.getItem('tc_token') || '';
+  var opts = { method: method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(path, opts);
+  var data = {};
+  try { data = await r.json(); } catch(e) {}
+  if (!r.ok) throw new Error(data.error || data.message || 'Request failed (' + r.status + ')');
+  return data;
 }
 
-// ── File storage (each file in its own localStorage key) ───────
-function saveTrackerFile(entryId, type, dataURL, name, mimeType, size) {
-  var key = 'tc_file_' + entryId + '_' + type;
-  try {
-    localStorage.setItem(key, JSON.stringify({ name: name, type: mimeType, size: size, data: dataURL }));
-    return true;
-  } catch(e) { return false; }
+// ── File storage (files stored in DB via the entry) ────────────
+function guessMime(name) {
+  if (!name) return '';
+  var ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf')  return 'application/pdf';
+  if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (ext === 'doc')  return 'application/msword';
+  if (ext === 'txt')  return 'text/plain';
+  return '';
 }
 function loadTrackerFile(entryId, type) {
-  var key = 'tc_file_' + entryId + '_' + type;
-  try { return JSON.parse(localStorage.getItem(key)); } catch(e) { return null; }
+  var entry = _entries.find(function(e){ return e.id === entryId; });
+  if (!entry) return null;
+  var fileData = type === 'resume' ? entry.resumeFileData : entry.coverLetterFileData;
+  var fileName = type === 'resume' ? entry.resumeFileName : entry.coverLetterFileName;
+  if (!fileData) return null;
+  return { name: fileName, data: fileData, type: guessMime(fileName), size: 0 };
 }
-function deleteTrackerFiles(entryId) {
-  localStorage.removeItem('tc_file_' + entryId + '_resume');
-  localStorage.removeItem('tc_file_' + entryId + '_cover');
-}
+function saveTrackerFile() { /* handled server-side */ return true; }
+function deleteTrackerFiles() { /* handled server-side */ }
 function downloadTrackerFile(entryId, type) {
   var f = loadTrackerFile(entryId, type);
   if (!f || !f.data) { alert('File not found. It may not have been saved.'); return; }
   var a = document.createElement('a');
   a.href = f.data; a.download = f.name || 'document'; a.click();
+}
+
+// ── Init: fetch from API, migrate localStorage if needed ───────
+async function initTracker() {
+  try {
+    var data = await trackerApi('GET', '/api/tracker');
+    _entries = data.entries || [];
+
+    // One-time migration from localStorage
+    if (_entries.length === 0) {
+      var oldRaw = localStorage.getItem('proresume_tracker_v2');
+      if (oldRaw) {
+        try {
+          var oldEntries = JSON.parse(oldRaw) || [];
+          if (oldEntries.length > 0) {
+            var banner = document.createElement('div');
+            banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:14px 20px;border-radius:12px;margin-bottom:20px;font-size:.9rem;font-weight:600';
+            banner.textContent = 'Migrating ' + oldEntries.length + ' application(s) to your account…';
+            var mainEl = document.querySelector('main');
+            if (mainEl) mainEl.insertBefore(banner, mainEl.firstChild);
+
+            var migrated = 0;
+            for (var mi = 0; mi < oldEntries.length; mi++) {
+              var me = oldEntries[mi];
+              // Pull file data from old separate localStorage keys
+              var rFile = null; var cFile = null;
+              try { rFile = JSON.parse(localStorage.getItem('tc_file_' + me.id + '_resume')); } catch(x) {}
+              try { cFile = JSON.parse(localStorage.getItem('tc_file_' + me.id + '_cover')); } catch(x) {}
+              me.resumeFileName      = (rFile && rFile.name)  || me.resumeFileName  || (me.resumeFile && me.resumeFile.name)       || null;
+              me.resumeFileData      = (rFile && rFile.data)  || (me.resumeFile && me.resumeFile.data)  || null;
+              me.coverLetterFileName = (cFile && cFile.name)  || me.coverLetterFileName || (me.coverLetterFile && me.coverLetterFile.name) || null;
+              me.coverLetterFileData = (cFile && cFile.data)  || (me.coverLetterFile && me.coverLetterFile.data) || null;
+              delete me.resumeFile; delete me.coverLetterFile;
+              try { await trackerApi('POST', '/api/tracker', me); migrated++; } catch(x) { console.warn('Migration skip:', me.id, x.message); }
+            }
+            // Clean up localStorage
+            oldEntries.forEach(function(e) {
+              localStorage.removeItem('tc_file_' + e.id + '_resume');
+              localStorage.removeItem('tc_file_' + e.id + '_cover');
+            });
+            localStorage.removeItem('proresume_tracker_v2');
+
+            var data2 = await trackerApi('GET', '/api/tracker');
+            _entries = data2.entries || [];
+
+            banner.style.background = '#dcfce7'; banner.style.borderColor = '#86efac'; banner.style.color = '#166534';
+            banner.textContent = '✓ Migrated ' + migrated + ' application(s) — your data is now safely stored in the cloud.';
+            setTimeout(function(){ if (banner.parentNode) banner.parentNode.removeChild(banner); }, 5000);
+          }
+        } catch(x) { console.warn('Migration error:', x); }
+      }
+    }
+  } catch(err) {
+    console.error('Failed to load tracker:', err.message);
+    _entries = [];
+  }
+  renderPipeline();
+  renderTable();
 }
 
 // ── File upload (pending state before entry is saved) ──────────
@@ -716,7 +784,7 @@ function handleFileSelect(type) {
   var file = document.getElementById(inputId).files[0];
   if (!file) return;
   if (file.size > 3 * 1024 * 1024) {
-    if (!confirm('This file is ' + (file.size / 1024 / 1024).toFixed(1) + 'MB. Large files use more browser storage. Continue?')) {
+    if (!confirm('This file is ' + (file.size / 1024 / 1024).toFixed(1) + 'MB. Large files take longer to upload. Continue?')) {
       document.getElementById(inputId).value = ''; return;
     }
   }
@@ -895,20 +963,21 @@ function renderTable() {
     cardContainer.innerHTML = ch;
 
     cardContainer.querySelectorAll('.status-select[data-id-card]').forEach(function(sel) {
-      sel.addEventListener('change', function() {
+      sel.addEventListener('change', async function() {
         var id = sel.getAttribute('data-id-card');
-        var all = load();
-        all.forEach(function(e) { if(e.id===id){ e.status=sel.value; e.statusDate=new Date().toISOString(); } });
-        save(all); renderPipeline(); renderTable();
+        var entry = _entries.find(function(e){ return e.id===id; });
+        if (!entry) return;
+        entry.status = sel.value; entry.statusDate = new Date().toISOString();
+        try { await trackerApi('PUT', '/api/tracker/' + id, entry); renderPipeline(); renderTable(); }
+        catch(err) { alert('Failed to update status: ' + err.message); }
       });
     });
     cardContainer.querySelectorAll('[data-del-card]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', async function() {
         if (!confirm('Remove this application?')) return;
         var id = btn.getAttribute('data-del-card');
-        deleteTrackerFiles(id);
-        save(load().filter(function(e){ return e.id!==id; }));
-        renderPipeline(); renderTable();
+        try { await trackerApi('DELETE', '/api/tracker/' + id); _entries = _entries.filter(function(e){ return e.id!==id; }); renderPipeline(); renderTable(); }
+        catch(err) { alert('Failed to delete: ' + err.message); }
       });
     });
     cardContainer.querySelectorAll('[data-detail-card]').forEach(function(btn) {
@@ -932,33 +1001,33 @@ function renderTable() {
 
   // Status change
   body.querySelectorAll('.status-select').forEach(function(sel) {
-    sel.addEventListener('change', function() {
+    sel.addEventListener('change', async function() {
       var id = sel.getAttribute('data-id');
-      var all = load();
-      all.forEach(function(e) { if(e.id===id) { e.status=sel.value; e.statusDate=new Date().toISOString(); } });
-      save(all);
-      renderPipeline();
-      renderTable();
+      var entry = _entries.find(function(e){ return e.id===id; });
+      if (!entry) return;
+      entry.status = sel.value; entry.statusDate = new Date().toISOString();
+      try { await trackerApi('PUT', '/api/tracker/' + id, entry); renderPipeline(); renderTable(); }
+      catch(err) { alert('Failed to update status: ' + err.message); }
     });
   });
   // Notes change
   body.querySelectorAll('[data-notes-id]').forEach(function(ta) {
-    ta.addEventListener('change', function() {
+    ta.addEventListener('change', async function() {
       var id = ta.getAttribute('data-notes-id');
-      var all = load();
-      all.forEach(function(e) { if(e.id===id) e.notes=ta.value; });
-      save(all);
+      var entry = _entries.find(function(e){ return e.id===id; });
+      if (!entry) return;
+      entry.notes = ta.value;
+      try { await trackerApi('PUT', '/api/tracker/' + id, entry); }
+      catch(err) { alert('Failed to save notes: ' + err.message); }
     });
   });
   // Delete
   body.querySelectorAll('[data-del]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function() {
       if (!confirm('Remove this application?')) return;
       var id = btn.getAttribute('data-del');
-      deleteTrackerFiles(id);
-      save(load().filter(function(e){ return e.id!==id; }));
-      renderPipeline();
-      renderTable();
+      try { await trackerApi('DELETE', '/api/tracker/' + id); _entries = _entries.filter(function(e){ return e.id!==id; }); renderPipeline(); renderTable(); }
+      catch(err) { alert('Failed to delete: ' + err.message); }
     });
   });
   // JD viewer
@@ -1082,18 +1151,21 @@ function setDmField(id, val, isLink) {
   }
 }
 
-function saveDetailNotes() {
+async function saveDetailNotes() {
   if (!_detailId) return;
-  var all = load();
-  all.forEach(function(e) {
-    if (e.id === _detailId) e.notes = document.getElementById('dmNotes').value;
-  });
-  save(all);
-  renderTable();
-  // Brief visual confirm
+  var entry = _entries.find(function(e){ return e.id === _detailId; });
+  if (!entry) return;
+  entry.notes = document.getElementById('dmNotes').value;
   var btn = document.querySelector('.detail-save-btn');
-  btn.textContent = '✓ Saved!';
-  setTimeout(function(){ btn.textContent = 'Save Notes'; }, 1500);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    await trackerApi('PUT', '/api/tracker/' + _detailId, entry);
+    renderTable();
+    if (btn) { btn.textContent = '✓ Saved!'; setTimeout(function(){ btn.textContent = 'Save Notes'; btn.disabled = false; }, 1500); }
+  } catch(err) {
+    alert('Failed to save notes: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Notes'; }
+  }
 }
 
 function closeDetail() {
@@ -1121,7 +1193,7 @@ function openAddModal() {
 function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
 function handleModalClick(e) { if (e.target === document.getElementById('addModal')) closeAddModal(); }
 
-function confirmAdd() {
+async function confirmAdd() {
   var company = document.getElementById('addCompany').value.trim();
   var role    = document.getElementById('addRole').value.trim();
   if (!company || !role) { alert('Company and Role are required.'); return; }
@@ -1133,50 +1205,48 @@ function confirmAdd() {
 
   var newId = Date.now().toString();
 
-  // Save files in their own keys (not inside the entry)
-  var savedResumeName = null;
-  var savedCoverName  = null;
-  if (_pendingResume && _pendingResume.data) {
-    var ok = saveTrackerFile(newId, 'resume', _pendingResume.data, _pendingResume.name, _pendingResume.type, _pendingResume.size);
-    if (ok) savedResumeName = _pendingResume.name;
-  }
-  if (_pendingCover && _pendingCover.data) {
-    var ok2 = saveTrackerFile(newId, 'cover', _pendingCover.data, _pendingCover.name, _pendingCover.type, _pendingCover.size);
-    if (ok2) savedCoverName = _pendingCover.name;
-  }
-
-  var all = load();
   var newEntry = {
-    id:                 newId,
-    company:            company,
-    role:               role,
-    date:               date,
-    template:           '',
-    templateLabel:      'Manual entry',
-    profile:            '',
-    profileLabel:       '',
-    atsScore:           null,
-    status:             document.getElementById('addStatus').value,
-    notes:              document.getElementById('addNotes').value.trim(),
-    statusDate:         new Date().toISOString(),
-    applicationMethod:  document.getElementById('addMethod').value || '',
-    followUpDate:       document.getElementById('addFollowUp').value || '',
-    salaryRange:        document.getElementById('addSalary').value.trim(),
-    jobUrl:             document.getElementById('addUrl').value.trim(),
-    recruiterName:      document.getElementById('addRecruiterName').value.trim(),
-    recruiterEmail:     document.getElementById('addRecruiterEmail').value.trim(),
-    recruiterPhone:     document.getElementById('addRecruiterPhone').value.trim(),
-    recruiterLinkedin:  document.getElementById('addRecruiterLinkedin').value.trim(),
-    resumeFileName:      savedResumeName,
-    coverLetterFileName: savedCoverName,
+    id:                  newId,
+    company:             company,
+    role:                role,
+    date:                date,
+    template:            '',
+    templateLabel:       'Manual entry',
+    profile:             '',
+    profileLabel:        '',
+    atsScore:            null,
+    status:              document.getElementById('addStatus').value,
+    notes:               document.getElementById('addNotes').value.trim(),
+    statusDate:          new Date().toISOString(),
+    applicationMethod:   document.getElementById('addMethod').value || '',
+    followUpDate:        document.getElementById('addFollowUp').value || '',
+    salaryRange:         document.getElementById('addSalary').value.trim(),
+    jobUrl:              document.getElementById('addUrl').value.trim(),
+    recruiterName:       document.getElementById('addRecruiterName').value.trim(),
+    recruiterEmail:      document.getElementById('addRecruiterEmail').value.trim(),
+    recruiterPhone:      document.getElementById('addRecruiterPhone').value.trim(),
+    recruiterLinkedin:   document.getElementById('addRecruiterLinkedin').value.trim(),
+    resumeFileName:      _pendingResume ? _pendingResume.name : null,
+    resumeFileData:      _pendingResume ? _pendingResume.data : null,
+    coverLetterFileName: _pendingCover  ? _pendingCover.name  : null,
+    coverLetterFileData: _pendingCover  ? _pendingCover.data  : null,
   };
-  all.unshift(newEntry);
-  save(all);
-  closeAddModal();
-  _pendingResume = null;
-  _pendingCover  = null;
-  renderPipeline();
-  renderTable();
+
+  var addBtn = document.querySelector('#addModal .btn-primary');
+  if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Saving…'; }
+  try {
+    var result = await trackerApi('POST', '/api/tracker', newEntry);
+    _entries.unshift(result.entry || newEntry);
+    closeAddModal();
+    _pendingResume = null;
+    _pendingCover  = null;
+    renderPipeline();
+    renderTable();
+  } catch(err) {
+    alert('Failed to save application: ' + err.message);
+  } finally {
+    if (addBtn) { addBtn.disabled = false; addBtn.textContent = 'Add Application'; }
+  }
 }
 
 // ── CSV Export ────────────────────────────────────────────────
@@ -1216,14 +1286,7 @@ function exportCSV() {
 var _viewerFileRef = null;
 
 function viewTrackerFile(entryId, type) {
-  // Load from separate key (new format), fall back to inline legacy format
   var f = loadTrackerFile(entryId, type);
-  if (!f) {
-    var entry = load().find(function(e){ return e.id === entryId; });
-    if (entry) {
-      f = type === 'resume' ? entry.resumeFile : entry.coverLetterFile;
-    }
-  }
   if (!f || !f.data) { alert('File not found. It may not have been saved.'); return; }
   _viewerFileRef = f;
   openViewer(f);
@@ -1533,14 +1596,11 @@ function hmRenderSuccess() {
 }
 
 
-// ── Auth guard ────────────────────────────────────────────────
+// ── Auth guard + Init ─────────────────────────────────────────
 (function() {
-  if (!localStorage.getItem('tc_token')) { window.location.href = '/auth.html'; }
+  if (!localStorage.getItem('tc_token')) { window.location.href = '/auth.html'; return; }
+  initTracker();
 })();
-
-// ── Init ──────────────────────────────────────────────────────
-renderPipeline();
-renderTable();
 </script>
 </body>
 </html>

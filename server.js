@@ -126,6 +126,39 @@ const pool = new Pool({
       created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  // Job Application Tracker — persistent per-user entries
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS job_applications (
+      id                       TEXT PRIMARY KEY,
+      user_id                  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      company                  TEXT NOT NULL,
+      role                     TEXT NOT NULL,
+      date                     TEXT,
+      status                   TEXT NOT NULL DEFAULT 'Applied',
+      notes                    TEXT,
+      status_date              TIMESTAMPTZ,
+      application_method       TEXT,
+      follow_up_date           TEXT,
+      salary_range             TEXT,
+      job_url                  TEXT,
+      ats_score                INTEGER,
+      jd                       TEXT,
+      recruiter_name           TEXT,
+      recruiter_email          TEXT,
+      recruiter_phone          TEXT,
+      recruiter_linkedin       TEXT,
+      resume_file_name         TEXT,
+      resume_file_data         TEXT,
+      cover_letter_file_name   TEXT,
+      cover_letter_file_data   TEXT,
+      template                 TEXT,
+      template_label           TEXT,
+      profile                  TEXT,
+      profile_label            TEXT,
+      created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
   console.log('Database ready.');
 })().catch(err => { console.error('DB init error:', err); process.exit(1); });
 
@@ -276,7 +309,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Stripe webhook needs raw body — mount BEFORE express.json()
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json({ limit: '16mb' }));
 
 // Rate limiting
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many requests, please try again later.' } });
@@ -2860,6 +2893,145 @@ app.post('/api/portfolio/fetch', requireAuth, async (req, res) => {
     }
     console.error('portfolio/fetch error:', err);
     res.status(502).json({ error: 'Could not fetch the portfolio URL. Check that it is publicly accessible.' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  JOB APPLICATION TRACKER
+// ══════════════════════════════════════════════════════════════
+function dbRowToEntry(row) {
+  return {
+    id:                   row.id,
+    company:              row.company,
+    role:                 row.role,
+    date:                 row.date || '',
+    status:               row.status || 'Applied',
+    notes:                row.notes || '',
+    statusDate:           row.status_date || null,
+    applicationMethod:    row.application_method || '',
+    followUpDate:         row.follow_up_date || '',
+    salaryRange:          row.salary_range || '',
+    jobUrl:               row.job_url || '',
+    atsScore:             row.ats_score != null ? row.ats_score : null,
+    jd:                   row.jd || '',
+    recruiterName:        row.recruiter_name || '',
+    recruiterEmail:       row.recruiter_email || '',
+    recruiterPhone:       row.recruiter_phone || '',
+    recruiterLinkedin:    row.recruiter_linkedin || '',
+    resumeFileName:       row.resume_file_name || null,
+    resumeFileData:       row.resume_file_data || null,
+    coverLetterFileName:  row.cover_letter_file_name || null,
+    coverLetterFileData:  row.cover_letter_file_data || null,
+    template:             row.template || '',
+    templateLabel:        row.template_label || '',
+    profile:              row.profile || '',
+    profileLabel:         row.profile_label || '',
+  };
+}
+
+// GET /api/tracker — list all entries for the authenticated user
+app.get('/api/tracker', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM job_applications WHERE user_id = $1 ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    res.json({ entries: result.rows.map(dbRowToEntry) });
+  } catch (e) {
+    console.error('GET /api/tracker error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/tracker — create a new entry
+app.post('/api/tracker', requireAuth, async (req, res) => {
+  try {
+    const e = req.body || {};
+    if (!e.company || !e.role) return res.status(400).json({ error: 'company and role are required' });
+    const id = e.id || Date.now().toString();
+    const result = await pool.query(
+      `INSERT INTO job_applications
+         (id, user_id, company, role, date, status, notes, status_date,
+          application_method, follow_up_date, salary_range, job_url,
+          ats_score, jd, recruiter_name, recruiter_email, recruiter_phone,
+          recruiter_linkedin, resume_file_name, resume_file_data,
+          cover_letter_file_name, cover_letter_file_data,
+          template, template_label, profile, profile_label)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+       ON CONFLICT (id) DO NOTHING
+       RETURNING *`,
+      [
+        id, req.user.id, e.company, e.role, e.date || null,
+        e.status || 'Applied', e.notes || null, e.statusDate || null,
+        e.applicationMethod || null, e.followUpDate || null,
+        e.salaryRange || null, e.jobUrl || null,
+        e.atsScore != null ? e.atsScore : null, e.jd || null,
+        e.recruiterName || null, e.recruiterEmail || null,
+        e.recruiterPhone || null, e.recruiterLinkedin || null,
+        e.resumeFileName || null, e.resumeFileData || null,
+        e.coverLetterFileName || null, e.coverLetterFileData || null,
+        e.template || null, e.templateLabel || null,
+        e.profile || null, e.profileLabel || null,
+      ]
+    );
+    const row = result.rows[0];
+    res.json({ entry: row ? dbRowToEntry(row) : { ...dbRowToEntry({ id, user_id: req.user.id, company: e.company, role: e.role }), ...e } });
+  } catch (e) {
+    console.error('POST /api/tracker error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/tracker/:id — update an existing entry
+app.put('/api/tracker/:id', requireAuth, async (req, res) => {
+  try {
+    const e = req.body || {};
+    const result = await pool.query(
+      `UPDATE job_applications
+       SET company=$1, role=$2, date=$3, status=$4, notes=$5, status_date=$6,
+           application_method=$7, follow_up_date=$8, salary_range=$9,
+           job_url=$10, ats_score=$11, jd=$12,
+           recruiter_name=$13, recruiter_email=$14, recruiter_phone=$15,
+           recruiter_linkedin=$16, resume_file_name=$17, resume_file_data=$18,
+           cover_letter_file_name=$19, cover_letter_file_data=$20,
+           template=$21, template_label=$22, profile=$23, profile_label=$24,
+           updated_at=NOW()
+       WHERE id=$25 AND user_id=$26
+       RETURNING *`,
+      [
+        e.company, e.role, e.date || null,
+        e.status || 'Applied', e.notes || null, e.statusDate || null,
+        e.applicationMethod || null, e.followUpDate || null,
+        e.salaryRange || null, e.jobUrl || null,
+        e.atsScore != null ? e.atsScore : null, e.jd || null,
+        e.recruiterName || null, e.recruiterEmail || null,
+        e.recruiterPhone || null, e.recruiterLinkedin || null,
+        e.resumeFileName || null, e.resumeFileData || null,
+        e.coverLetterFileName || null, e.coverLetterFileData || null,
+        e.template || null, e.templateLabel || null,
+        e.profile || null, e.profileLabel || null,
+        req.params.id, req.user.id,
+      ]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Entry not found' });
+    res.json({ entry: dbRowToEntry(result.rows[0]) });
+  } catch (e) {
+    console.error('PUT /api/tracker error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/tracker/:id — remove an entry
+app.delete('/api/tracker/:id', requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM job_applications WHERE id=$1 AND user_id=$2',
+      [req.params.id, req.user.id]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('DELETE /api/tracker error:', e);
+    res.status(500).json({ error: e.message });
   }
 });
 
