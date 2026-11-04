@@ -1226,16 +1226,40 @@ function makeCompTable(list, cfg){
 
 function makeRoleBlock(role, cfg){
   var ps=[], projs=role.projects||[], resps=role.responsibilities||[];
-  var align=cfg.nameAlign==='LEFT' ? AlignmentType.LEFT : AlignmentType.CENTER;
-  ps.push(new Paragraph({
-    children:[
-      new TextRun({text:role.title,bold:true,size:cfg.B,font:cfg.FONT}),
-      new TextRun({text:'  |  '+role.company+'  |  '+role.location,size:cfg.B,font:cfg.FONT}),
-      new TextRun({text:'\t',size:cfg.B,font:cfg.FONT}),
-      new TextRun({text:role.dates,italics:true,size:cfg.B,font:cfg.FONT})
-    ],
-    tabStops:[{type:TabStopType.RIGHT,position:TabStopPosition.MAX}],
-    spacing:{before:cfg.roleAfter||180,after:80}
+  // ── Role header: 2-cell borderless table so dates are always right-aligned
+  // regardless of how long the title / company / location text is.
+  var nb2={style:BorderStyle.NIL};
+  var cellBords={top:nb2,bottom:nb2,left:nb2,right:nb2,insideH:nb2,insideV:nb2};
+  var CWr = PW - 2*cfg.MAR;
+  var dateW = 2016; // ~20 % for dates column
+  var titleW = CWr - dateW;
+  ps.push(new Table({
+    width:{size:CWr,type:WidthType.DXA},
+    columnWidths:[titleW, dateW],
+    rows:[new TableRow({children:[
+      new TableCell({
+        borders:cellBords,
+        width:{size:titleW,type:WidthType.DXA},
+        margins:{top:0,bottom:0,left:0,right:120},
+        children:[new Paragraph({
+          children:[
+            new TextRun({text:role.title,bold:true,size:cfg.B,font:cfg.FONT}),
+            new TextRun({text:'  |  '+(role.company||'')+'  |  '+(role.location||''),size:cfg.B,font:cfg.FONT})
+          ],
+          spacing:{before:cfg.roleAfter||180,after:80}
+        })]
+      }),
+      new TableCell({
+        borders:cellBords,
+        width:{size:dateW,type:WidthType.DXA},
+        margins:{top:0,bottom:0,left:0,right:0},
+        children:[new Paragraph({
+          children:[new TextRun({text:role.dates||'',italics:true,size:cfg.B,font:cfg.FONT})],
+          alignment:AlignmentType.RIGHT,
+          spacing:{before:cfg.roleAfter||180,after:80}
+        })]
+      })
+    ]})]
   }));
   for(var i=0;i<projs.length;i++) ps.push(new Paragraph({
     children:[new TextRun({text:projs[i].title+': ',bold:true,size:cfg.B,font:cfg.FONT}),new TextRun({text:projs[i].description,size:cfg.B,font:cfg.FONT})],
@@ -1541,6 +1565,13 @@ async function build(){
     if (resumeBlob) addDownload(resumeBlob, rName, '📄', 'Resume (.docx)');
     if (clBlob)     addDownload(clBlob,     cName, '✉️', 'Cover Letter (.docx)');
     document.getElementById('dlCard').style.display='block';
+    // PDF export (runs async alongside ATS; don't await — add card when ready)
+    if (resumeBlob) {
+      var pdfName = rName.replace(/\.docx$/i, '.pdf');
+      generatePDF(document.getElementById('pvPage'), pdfName).then(function(pdfBlob) {
+        if (pdfBlob) addDownload(pdfBlob, pdfName, '🖨', 'Resume (.pdf)');
+      });
+    }
 
     // 5. ATS Score
     step(5,'active');
@@ -1683,6 +1714,10 @@ async function enhance() {
     document.getElementById('pvPage').innerHTML = buildResumeHtml(enhanced, selectedTemplate);
     addDownload(blob, dlName, '✨', 'Enhanced Resume (.docx)');
     document.getElementById('dlCard').style.display = 'block';
+    var enhPdfName = dlName.replace(/\.docx$/i, '.pdf');
+    generatePDF(document.getElementById('pvPage'), enhPdfName).then(function(pdfBlob) {
+      if (pdfBlob) addDownload(pdfBlob, enhPdfName, '🖨', 'Enhanced Resume (.pdf)');
+    });
 
     // Skip ATS score (needs a JD)
     step(5,'done');
@@ -2146,6 +2181,23 @@ function addDownload(blob,fname,icon,label){
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; a.className='dl-card';
   a.innerHTML='<span class="di">'+icon+'</span><span>'+label+'</span><span class="dn">'+fname+'</span>';
   document.getElementById('dlGrid').appendChild(a);
+}
+
+async function generatePDF(pvElement, pdfName) {
+  if (typeof html2pdf === 'undefined') { console.warn('html2pdf not loaded'); return null; }
+  try {
+    var opt = {
+      margin:       [0.55, 0.65, 0.55, 0.65],
+      filename:     pdfName,
+      image:        { type:'jpeg', quality:0.97 },
+      html2canvas:  { scale:2, useCORS:true, letterRendering:true },
+      jsPDF:        { unit:'in', format:'letter', orientation:'portrait' }
+    };
+    return await html2pdf().set(opt).from(pvElement).outputPdf('blob');
+  } catch(e) {
+    console.error('PDF generation error:', e);
+    return null;
+  }
 }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
