@@ -424,6 +424,15 @@
       box-shadow:0 3px 12px rgba(91,48,246,.25);
     }
     #buildCoverBtn:hover:not(:disabled) { box-shadow:0 5px 18px rgba(91,48,246,.35); }
+    /* Enhance — teal, no-JD mode */
+    .enhance-divider { display:flex; align-items:center; gap:12px; margin:4px 0; color:#94a3b8; font-size:.78rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+    .enhance-divider::before, .enhance-divider::after { content:''; flex:1; height:1px; background:#e2e8f0; }
+    #enhanceBtn {
+      background:linear-gradient(135deg,#0d7a60,#0a9e7e 50%,#0cc795); color:#fff;
+      box-shadow:0 3px 12px rgba(13,122,96,.3);
+      font-size:14px; padding:13px 12px;
+    }
+    #enhanceBtn:hover:not(:disabled) { box-shadow:0 5px 18px rgba(13,122,96,.45); }
 
     /* ── Progress ── */
     .prog { display:none; flex-direction:column; gap:7px; }
@@ -2815,6 +2824,8 @@
       <button id="buildResumeBtn" class="build-btn">📋 Resume only</button>
       <button id="buildCoverBtn"  class="build-btn">✉️ Cover Letter only</button>
     </div>
+    <div class="enhance-divider">or</div>
+    <button id="enhanceBtn" class="build-btn">✨ Enhance Resume — no job description needed</button>
   </div>
 
   <!-- Progress -->

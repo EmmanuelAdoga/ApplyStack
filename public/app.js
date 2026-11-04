@@ -839,6 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('buildBtn').textContent = '⚡ Build Resume only';
     build();
   });
+  document.getElementById('enhanceBtn').addEventListener('click', function() { enhance(); });
   document.getElementById('buildCoverBtn').addEventListener('click', function() {
     window._jmBuildMode = 'cover';
     document.getElementById('buildBtn').textContent = '⚡ Build Cover Letter only';
@@ -1439,7 +1440,7 @@ async function build(){
   if(!jd)                               return showAlert('warn','Job description missing.','Paste the job description in Step 3.');
 
   busy=true;
-  ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){
+  ['buildBtn','buildResumeBtn','buildCoverBtn','enhanceBtn'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.disabled = true;
   });
   document.getElementById('buildBtn').innerHTML='<span class="spin"></span> Building\u2026';
@@ -1581,11 +1582,119 @@ async function build(){
     console.error(err);
   } finally {
     busy=false;
-    ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){
+    ['buildBtn','buildResumeBtn','buildCoverBtn','enhanceBtn'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.disabled = false;
     });
     document.getElementById('buildBtn').innerHTML='\u26A1 Build Resume, Cover Letter &amp; Full Analysis';
     document.getElementById('buildBtn').removeAttribute('data-jm-mode');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Enhance Resume (no JD) ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+async function enhance() {
+  if (busy) return;
+  clearAlert(); clearOutputs();
+
+  if (!selectedProfile)              return showAlert('warn','No profile selected.','Choose a professional profile at Step 1.');
+  if (!fileBuffer && !extractedText) return showAlert('warn','No resume loaded.','Upload a file in Step 2, or load your Career Vault.');
+
+  busy = true;
+  var enhBtn = document.getElementById('enhanceBtn');
+  if (enhBtn) { enhBtn.disabled = true; enhBtn.innerHTML = '<span class="spin"></span> Enhancing…'; }
+  ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){ var el=document.getElementById(id); if(el) el.disabled=true; });
+  document.getElementById('prog').classList.add('on');
+
+  try {
+    // 1. Extract text
+    step(1,'active');
+    var resumeText = extractedText && !fileBuffer ? extractedText : await extractText(fileBuffer, fileName);
+    step(1,'done');
+
+    // 2. Enhance with Claude
+    step(2,'active');
+    var profile = PROFILES[selectedProfile] || PROFILES.business;
+    var expStructure = isProjectProfile(selectedProfile)
+      ? '  "workExperience": [{"title":"","company":"","location":"","dates":"","projects":[{"title":"Project N: [Descriptive Name]","description":"1-2 sentences on scope and outcome."}],"responsibilities":["Roles/Responsibilities bullet — names specific tool or technique. No em dashes."]}],'
+      : '  "workExperience": [{"title":"","company":"","location":"","dates":"","projects":[],"responsibilities":["Strong achievement or responsibility bullet. Quantified where possible. Opens with action verb. Names specific tool, method, or metric. No em dashes."]}],';
+
+    var sys = [
+      'You are a specialist resume writer. Your task is to ENHANCE and professionally reformat an existing resume into a clean, standardised structure.',
+      '',
+      'CORE RULES — NON-NEGOTIABLE:',
+      '1. NEVER fabricate achievements, tools, metrics, qualifications, or experiences not present in the original resume.',
+      '2. Preserve all real metrics and quantified achievements exactly as stated.',
+      '3. Natural human tone. Remove corporate filler ("synergised", "leveraged", "holistic", "robust", etc.).',
+      '4. SPECIFICITY: Every bullet must name the specific technique, tool, or metric. Rewrite vague bullets to be more concrete — but only using information already in the resume.',
+      '5. NO EM DASHES anywhere. Use commas, parentheses, or restructure sentences.',
+      '6. PROFESSIONAL SUMMARY: "A [adjective] [job title]..." — set summaryTitle to "PROFESSIONAL SUMMARY - [inferred or stated job title]". Max 5 lines (~60 words).',
+      '7. KEY SKILLS / CORE COMPETENCE: Exactly 12 items, ordered by relevance to the candidate\'s stated career.',
+      isProjectProfile(selectedProfile)
+        ? '8. WORK EXPERIENCE FORMAT — PROJECT STYLE: For each role, first list 1-3 key project summaries in the "projects" array (format: "Project N: [Descriptive Name]", 1-2 sentence description). Then list detailed bullets in the "responsibilities" array. Every bullet names the specific tool or technique.'
+        : '8. WORK EXPERIENCE FORMAT — DIRECT BULLET STYLE: The "projects" array MUST be empty [] for every role. All content in the "responsibilities" array as strong, quantified achievement bullets. Each bullet opens with an action verb and names the specific tool, method, or outcome.',
+      '9. Return ONLY valid JSON — no markdown fences, no explanation, no text before or after the JSON object.',
+      '',
+      profile.extraRules
+    ].join('\n');
+
+    var maxTok = selectedPages === 1 ? 4000 : selectedPages === 2 ? 8000 : selectedPages === 3 ? 12000 : selectedPages === 4 ? 16000 : 20000;
+    var prompt = [
+      'Enhance and reformat this resume into the platform\'s standard professional structure. Keep it ' + selectedPages + ' page' + (selectedPages > 1 ? 's' : '') + '.',
+      '',
+      'PROFESSIONAL PROFILE: ' + profile.name,
+      'EXPERIENCE FORMAT: ' + (isProjectProfile(selectedProfile) ? 'PROJECT-STYLE (projects[] then responsibilities[])' : 'DIRECT BULLETS (projects must be [], all content in responsibilities[])'),
+      '',
+      'RESUME TEXT:',
+      resumeText,
+      '',
+      'Return this exact JSON structure (no em dashes, no cover letter needed):',
+      '{',
+      '  "name": "",',
+      '  "summaryTitle": "PROFESSIONAL SUMMARY - [inferred job title]",',
+      '  "phone": "",',
+      '  "email": "",',
+      '  "locationPreference": "",',
+      '  "summary": "Enhanced professional summary. No em dashes.",',
+      '  "coreCompetencies": ["exactly 12 items"],',
+      expStructure,
+      '  "technicalSkills": [{"category":"","items":""}],',
+      '  "certifications": [""],',
+      '  "education": [{"degree":"","institution":"","location":""}],',
+      '  "coverLetter": {}',
+      '}'
+    ].join('\n');
+
+    var enhanced = await callClaude('tailor', sys, prompt, maxTok, 'claude-sonnet-4-6');
+    tailoredRef = enhanced;
+    step(2,'done');
+
+    // 3. Build resume DOCX
+    step(3,'active');
+    var blob = await Packer.toBlob(buildResumeDoc(enhanced, selectedTemplate));
+    var dlName = (enhanced.name || 'Resume').replace(/\s+/g,'_') + '_Enhanced.docx';
+    resumeBlobRef = blob; resumeNameRef = dlName;
+    step(3,'done');
+
+    // Skip cover letter step — not applicable
+    step(4,'done');
+
+    // Show preview + download
+    document.getElementById('pvPage').innerHTML = buildResumeHtml(enhanced, selectedTemplate);
+    addDownload(blob, dlName, '✨', 'Enhanced Resume (.docx)');
+    document.getElementById('dlCard').style.display = 'block';
+
+    // Skip ATS score (needs a JD)
+    step(5,'done');
+
+  } catch(err) {
+    showAlert('error','Enhancement failed.',err.message);
+    console.error(err);
+  } finally {
+    busy = false;
+    if (enhBtn) { enhBtn.disabled = false; enhBtn.innerHTML = '✨ Enhance Resume — no job description needed'; }
+    ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){ var el=document.getElementById(id); if(el) el.disabled=false; });
+    document.getElementById('buildBtn').innerHTML = '⚡ Build Resume, Cover Letter &amp; Full Analysis';
   }
 }
 
