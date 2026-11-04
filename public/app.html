@@ -1910,6 +1910,37 @@
 </head>
 <body>
 
+<!-- Sticky enhance float pill (right side) -->
+<div id="enhanceFloat" style="
+  position:fixed; right:0; top:50%; transform:translateY(-50%);
+  z-index:200; display:flex; flex-direction:column; align-items:center;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+">
+  <button onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);" style="
+    writing-mode:vertical-rl; text-orientation:mixed;
+    background:linear-gradient(180deg,#0d7a60,#0cc795);
+    color:#fff; border:none; border-radius:10px 0 0 10px;
+    padding:16px 10px; font-size:12.5px; font-weight:800;
+    cursor:pointer; letter-spacing:.03em; white-space:nowrap;
+    box-shadow:-3px 0 16px rgba(13,122,96,.35);
+    font-family:inherit;
+    transition:padding .2s, box-shadow .2s;
+  " onmouseover="this.style.paddingRight='14px';this.style.boxShadow='-5px 0 24px rgba(13,122,96,.5)'"
+     onmouseout="this.style.paddingRight='10px';this.style.boxShadow='-3px 0 16px rgba(13,122,96,.35)'">
+    ✨ Enhance Resume
+  </button>
+</div>
+<script>
+(function() {
+  var fl = document.getElementById('enhanceFloat');
+  window.addEventListener('scroll', function() {
+    var show = window.scrollY > 120;
+    fl.style.opacity = show ? '1' : '0';
+    fl.style.pointerEvents = show ? 'auto' : 'none';
+  }, {passive:true});
+})();
+</script>
+
 <header>
   <button class="app-hamburger" id="appHamburger" aria-label="Open menu" aria-expanded="false">
     <span></span><span></span><span></span>
@@ -1923,6 +1954,7 @@
     <span class="user-email" id="userEmailDisplay">Loading…</span>
     <a href="/" class="user-link">🏠 Home</a>
     <a href="/tracker.html" class="user-link">📋 Tracker</a>
+    <button class="user-link" style="background:linear-gradient(135deg,#0d7a60,#0cc795);color:#fff;border-radius:50px;padding:5px 13px;font-weight:700;" onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});">✨ Enhance</button>
     <button class="user-link user-link-jobs" onclick="openJobMatch()">🎯 Find Jobs</button>
     <a href="/prep.html" class="user-link">🎤 Interview Prep</a>
     <a href="/negotiate.html" class="user-link">💰 Negotiate</a>
@@ -1949,6 +1981,7 @@
     <a href="/" class="app-drawer-item"><span class="di-icon">🏠</span> Home</a>
     <a href="/app.html" class="app-drawer-item di-active"><span class="di-icon">📄</span> Resume Builder</a>
     <a href="/tracker.html" class="app-drawer-item"><span class="di-icon">📋</span> Job Tracker</a>
+    <button class="app-drawer-item" style="background:linear-gradient(135deg,rgba(13,122,96,.12),rgba(12,199,149,.08));border-left:3px solid #0cc795;color:#065f46;font-weight:700;" onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});closeAppDrawer();"><span class="di-icon">✨</span> Enhance Resume</button>
     <button class="app-drawer-item" onclick="openJobMatch();closeAppDrawer()"><span class="di-icon">🎯</span> Find Jobs</button>
     <a href="/prep.html" class="app-drawer-item"><span class="di-icon">🎤</span> Interview Prep</a>
     <a href="/negotiate.html" class="app-drawer-item"><span class="di-icon">💰</span> Salary Negotiate</a>
@@ -2037,6 +2070,26 @@
         After building, use <strong>💾 Save Progress</strong> to pick up exactly where you left off next time.
       </div>
     </div>
+  </div>
+
+  <!-- Enhance Resume CTA banner -->
+  <div id="enhanceCta" style="
+    background:linear-gradient(135deg,#064e3b,#0d7a60 50%,#059669);
+    border-radius:14px; padding:20px 24px; display:flex; align-items:center;
+    gap:18px; flex-wrap:wrap; box-shadow:0 4px 20px rgba(13,122,96,.35);
+    position:relative; overflow:hidden; cursor:pointer;
+  " onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 90% 50%,rgba(16,185,129,.18),transparent);pointer-events:none;"></div>
+    <span style="font-size:32px;flex-shrink:0">✨</span>
+    <div style="flex:1;min-width:200px;">
+      <div style="font-weight:800;font-size:15px;color:#fff;line-height:1.3">Already have a resume? Enhance it instantly</div>
+      <div style="font-size:12.5px;color:rgba(255,255,255,.75);margin-top:3px">No job description needed · AI cleans, strengthens, and reformats to platform standard</div>
+    </div>
+    <button id="enhanceCtaBtn" class="build-btn" onclick="event.stopPropagation();document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);" style="
+      background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
+      color:#fff;font-size:13px;padding:11px 20px;white-space:nowrap;flex-shrink:0;
+      backdrop-filter:blur(8px);
+    ">✨ Enhance Resume →</button>
   </div>
 
   <!-- Stepper -->
