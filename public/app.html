@@ -1983,7 +1983,7 @@
   z-index:200; display:flex; flex-direction:column; align-items:center;
   opacity:0; transition:opacity .3s; pointer-events:none;
 ">
-  <button onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);" style="
+  <button onclick="switchAppMode('enhance');" style="
     writing-mode:vertical-rl; text-orientation:mixed;
     background:linear-gradient(180deg,#0d7a60,#0cc795);
     color:#fff; border:none; border-radius:10px 0 0 10px;
@@ -2021,7 +2021,7 @@
     <span class="user-email" id="userEmailDisplay">Loading…</span>
     <a href="/" class="user-link">🏠 Home</a>
     <a href="/tracker.html" class="user-link">📋 Tracker</a>
-    <button class="user-link" style="background:linear-gradient(135deg,#0d7a60,#0cc795);color:#fff;border-radius:50px;padding:5px 13px;font-weight:700;" onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);">✨ Enhance</button>
+    <button class="user-link" style="background:linear-gradient(135deg,#0d7a60,#0cc795);color:#fff;border-radius:50px;padding:5px 13px;font-weight:700;" onclick="switchAppMode('enhance');">✨ Enhance</button>
     <button class="user-link user-link-jobs" onclick="openJobMatch()">🎯 Find Jobs</button>
     <a href="/prep.html" class="user-link">🎤 Interview Prep</a>
     <a href="/negotiate.html" class="user-link">💰 Negotiate</a>
@@ -2046,9 +2046,9 @@
   </div>
   <nav class="app-drawer-nav">
     <a href="/" class="app-drawer-item"><span class="di-icon">🏠</span> Home</a>
-    <a href="/app.html" class="app-drawer-item di-active"><span class="di-icon">📄</span> Resume Builder</a>
+    <a href="#" class="app-drawer-item di-active" id="drawerBuildLink" data-appmode="build" onclick="switchAppMode('build');closeAppDrawer();"><span class="di-icon">📄</span> Resume Builder</a>
     <a href="/tracker.html" class="app-drawer-item"><span class="di-icon">📋</span> Job Tracker</a>
-    <button class="app-drawer-item" style="background:linear-gradient(135deg,rgba(13,122,96,.12),rgba(12,199,149,.08));border-left:3px solid #0cc795;color:#065f46;font-weight:700;" onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);closeAppDrawer();"><span class="di-icon">✨</span> Enhance Resume</button>
+    <button class="app-drawer-item" id="drawerEnhanceLink" style="background:linear-gradient(135deg,rgba(13,122,96,.12),rgba(12,199,149,.08));border-left:3px solid #0cc795;color:#065f46;font-weight:700;" onclick="switchAppMode('enhance');closeAppDrawer();"><span class="di-icon">✨</span> Enhance Resume</button>
     <button class="app-drawer-item" onclick="openJobMatch();closeAppDrawer()"><span class="di-icon">🎯</span> Find Jobs</button>
     <a href="/prep.html" class="app-drawer-item"><span class="di-icon">🎤</span> Interview Prep</a>
     <a href="/negotiate.html" class="app-drawer-item"><span class="di-icon">💰</span> Salary Negotiate</a>
@@ -2080,6 +2080,11 @@
     <button class="rb-btn rb-restore" id="rbRestoreBtn">Restore Session</button>
     <button class="rb-btn rb-dismiss" id="rbDismissBtn">Dismiss</button>
   </div>
+
+  <!-- ═══════════════════════════════════════════
+       BUILD MODE — Resume Builder
+  ═══════════════════════════════════════════ -->
+  <div id="modeBuild">
 
   <!-- Onboarding Guide -->
   <div id="guideCard">
@@ -2137,26 +2142,6 @@
         After building, use <strong>💾 Save Progress</strong> to pick up exactly where you left off next time.
       </div>
     </div>
-  </div>
-
-  <!-- Enhance Resume CTA banner -->
-  <div id="enhanceCta" style="
-    background:linear-gradient(135deg,#064e3b,#0d7a60 50%,#059669);
-    border-radius:14px; padding:20px 24px; display:flex; align-items:center;
-    gap:18px; flex-wrap:wrap; box-shadow:0 4px 20px rgba(13,122,96,.35);
-    position:relative; overflow:hidden; cursor:pointer;
-  " onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 90% 50%,rgba(16,185,129,.18),transparent);pointer-events:none;"></div>
-    <span style="font-size:32px;flex-shrink:0">✨</span>
-    <div style="flex:1;min-width:200px;">
-      <div style="font-weight:800;font-size:15px;color:#fff;line-height:1.3">Already have a resume? Enhance it instantly</div>
-      <div style="font-size:12.5px;color:rgba(255,255,255,.75);margin-top:3px">No job description needed · AI cleans, strengthens, and reformats to platform standard</div>
-    </div>
-    <button id="enhanceCtaBtn" class="build-btn" onclick="event.stopPropagation();goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);" style="
-      background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
-      color:#fff;font-size:13px;padding:11px 20px;white-space:nowrap;flex-shrink:0;
-      backdrop-filter:blur(8px);
-    ">✨ Enhance Resume →</button>
   </div>
 
   <!-- Stepper -->
@@ -3060,6 +3045,144 @@
     <div></div>
   </div>
   </div><!-- end panel3 -->
+
+  </div><!-- end modeBuild -->
+
+  <!-- ═══════════════════════════════════════════
+       ENHANCE MODE — Dedicated standalone flow
+  ═══════════════════════════════════════════ -->
+  <div id="modeEnhance" style="display:none">
+
+    <!-- Hero header -->
+    <div class="card" style="background:linear-gradient(135deg,#064e3b,#0d7a60);text-align:center;padding:28px 24px;color:#fff;position:relative;overflow:hidden;border-radius:16px">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 90% 20%,rgba(16,185,129,.18),transparent);pointer-events:none"></div>
+      <div style="font-size:40px;margin-bottom:10px">✨</div>
+      <h2 style="color:#fff;font-size:20px;margin:0 0 8px">Enhance Your Resume</h2>
+      <p style="color:rgba(255,255,255,.8);font-size:14px;margin:0">AI cleans, strengthens, and reformats to a professional platform standard — no job description needed</p>
+    </div>
+
+    <!-- Step 1: Load resume -->
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="sec-num" id="enh_sn1" style="background:#0d7a60">1</div>
+        <div class="sec-hdr-text"><h2>Load your resume</h2><p>Upload a .docx or .pdf file</p></div>
+      </div>
+
+      <!-- Loaded state -->
+      <div id="enh_loaded" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f0fdf4;border:1.5px solid var(--green);border-radius:9px;margin-bottom:8px">
+          <span style="font-size:22px">✅</span>
+          <div style="flex:1">
+            <div id="enh_fileName" style="font-weight:700;color:var(--navy);font-size:14px">file.docx</div>
+            <div style="font-size:12px;color:var(--green);margin-top:1px">Ready to enhance</div>
+          </div>
+          <button onclick="enhReset()" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--muted);font-family:inherit">Change</button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="enh_empty">
+        <div class="dz" id="enh_dz" onclick="document.getElementById('enh_fileInput').click()" style="cursor:pointer">
+          <input type="file" id="enh_fileInput" accept=".docx,.pdf" style="display:none">
+          <span class="dz-icon" id="enh_dzIcon">📎</span>
+          <div class="dz-title">Drop your resume here</div>
+          <div class="dz-sub">Accepts <b>.docx</b> and <b>.pdf</b> · or click to browse</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Settings -->
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="sec-num" id="enh_sn2" style="background:#0d7a60">2</div>
+        <div class="sec-hdr-text"><h2>Settings &amp; customisation</h2><p>Tell the AI how to shape your resume</p></div>
+      </div>
+
+      <div class="f">
+        <label>Professional profile</label>
+        <select id="enh_profileSel" onchange="onEnhProfileChange(this.value)">
+          <option value="">— Choose your field —</option>
+          <option value="tech">💻 Software &amp; Tech</option>
+          <option value="business">📊 Business &amp; Ops</option>
+          <option value="finance">💰 Finance &amp; Accounting</option>
+          <option value="healthcare">🏥 Healthcare &amp; Clinical</option>
+          <option value="marketing">📢 Marketing &amp; Creative</option>
+          <option value="pm">🗂️ Project Management</option>
+          <option value="sales">💼 Sales &amp; Biz Dev</option>
+          <option value="legal">⚖️ Legal &amp; Compliance</option>
+          <option value="data">🤖 Data Science &amp; AI</option>
+          <option value="engineering">⚙️ Engineering (Civil/Mech/Elec)</option>
+          <option value="education">🎓 Education &amp; Teaching</option>
+          <option value="hr">👥 Human Resources</option>
+          <option value="ux">🎨 UX/UI &amp; Product Design</option>
+          <option value="cyber">🔐 Cybersecurity &amp; IT</option>
+          <option value="supplychain">🚚 Supply Chain &amp; Logistics</option>
+          <option value="government">🏛️ Government &amp; Public Sector</option>
+          <option value="nonprofit">💚 Non-Profit &amp; Social Impact</option>
+          <option value="erp">⚙️ ERP / Business Systems</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Resume length</label>
+        <select id="enh_pageSel" onchange="selectedPages=parseInt(this.value,10)">
+          <option value="1">1 page</option>
+          <option value="2" selected>2 pages</option>
+          <option value="3">3 pages</option>
+          <option value="4">4 pages</option>
+          <option value="5">5 pages</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Template style</label>
+        <select id="enh_templateSel" onchange="selectedTemplate=this.value">
+          <option value="classic">Classic — Traditional · centered</option>
+          <option value="executive">Executive — Forest banner · serif</option>
+          <option value="modern">Modern — Indigo gradient · pill skills</option>
+          <option value="professional">Professional — Navy left-bar sections</option>
+          <option value="minimal">Minimal — Clean · no borders</option>
+          <option value="techfirst">Tech First — Dark banner · code tags</option>
+          <option value="consulting">Consulting — Burgundy stripe · left-bar</option>
+          <option value="academic">Academic — Serif · dotted amber</option>
+          <option value="entrylevel">Entry Level — Sky banner · edu first</option>
+          <option value="government">Government — Formal · navy blocks</option>
+          <option value="creative">Creative — Teal stripe · pill skills</option>
+          <option value="healthcare">Healthcare — Teal stripe · clinical</option>
+          <option value="compact">Compact — Dense · gray caps · 1-page fit</option>
+          <option value="midnight">Midnight — Software Eng · Tech Stack first</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Custom instructions <span style="font-weight:400;font-size:11px;color:var(--muted);text-transform:none">optional</span></label>
+        <textarea id="enhanceInstructionsEnh" rows="4" placeholder="e.g. Focus on ERP and D365 experience&#10;Remove the volunteer section&#10;Emphasise leadership and stakeholder management&#10;Use a functional format focused on skills"></textarea>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:5px">💡 AI applies these while never fabricating information.</div>
+      </div>
+    </div>
+
+    <!-- Enhance button -->
+    <button id="enhanceBtnMain" class="build-btn" onclick="enhance()">✨ Enhance Resume — no job description needed</button>
+
+    <!-- Progress -->
+    <div class="card prog" id="enh_prog">
+      <div class="ps" id="enh_ps1"><span class="ps-ic">📂</span>Reading your resume…</div>
+      <div class="ps" id="enh_ps2"><span class="ps-ic">🧠</span>Enhancing with Claude AI…</div>
+      <div class="ps" id="enh_ps3"><span class="ps-ic">📄</span>Building Resume .docx…</div>
+    </div>
+
+    <!-- Downloads -->
+    <div class="card" id="enh_dlCard" style="display:none">
+      <div class="sec-hdr" style="margin-bottom:12px">
+        <span style="font-size:20px">🎉</span><h2 style="margin-left:10px">Your enhanced resume is ready</h2>
+      </div>
+      <div style="margin-bottom:4px">
+        <button type="button" id="enh_previewBtn" style="width:100%;margin-bottom:8px">👁 Preview Enhanced Resume</button>
+      </div>
+      <div class="dl-grid" id="enh_dlGrid"></div>
+    </div>
+
+  </div><!-- end modeEnhance -->
 
 </main>
 

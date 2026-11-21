@@ -846,6 +846,17 @@ document.addEventListener('DOMContentLoaded', function() {
     build();
   });
   document.getElementById('previewBtn').addEventListener('click', openPreview);
+  // Enhance mode file input + drag-drop
+  var enhFileInput = document.getElementById('enh_fileInput');
+  if (enhFileInput) enhFileInput.addEventListener('change', function() { if (this.files[0]) enhLoadFile(this.files[0]); });
+  var enhDz = document.getElementById('enh_dz');
+  if (enhDz) {
+    enhDz.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dz-over'); });
+    enhDz.addEventListener('dragleave', function() { this.classList.remove('dz-over'); });
+    enhDz.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('dz-over'); var f = e.dataTransfer.files[0]; if(f) enhLoadFile(f); });
+  }
+  var enhPrevBtn = document.getElementById('enh_previewBtn');
+  if (enhPrevBtn) enhPrevBtn.addEventListener('click', openPreview);
   document.getElementById('pvClose').addEventListener('click', closePreview);
   document.getElementById('previewModal').addEventListener('click', function(e) { if (e.target === this) closePreview(); });
   document.getElementById('pvDlBtn').addEventListener('click', function() {
@@ -941,6 +952,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── Stepper ────────────────────────────────────────────────────────────────
 // ── Step wizard navigation ──────────────────────────────────────────────────
 var currentStep = 0;
+var appMode = 'build';
 function goStep(n) {
   var panels = document.querySelectorAll('.step-panel');
   panels.forEach(function(p, i) { p.classList.toggle('active', i === n); });
@@ -949,7 +961,70 @@ function goStep(n) {
     if (i === n) el.classList.add('s-active');
   });
   currentStep = n;
+  // Scroll to the stepper bar so the active panel is immediately visible
+  var stepper = document.querySelector('.stepper');
+  if (stepper) stepper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Mode-aware element helper ───────────────────────────────────────────────
+// When in enhance mode, prefer enh_<id> if it exists
+function getEl(id) {
+  if (appMode === 'enhance') {
+    var el = document.getElementById('enh_' + id);
+    if (el) return el;
+  }
+  return document.getElementById(id);
+}
+
+// ── Mode switching ─────────────────────────────────────────────────────────
+function switchAppMode(mode) {
+  appMode = mode;
+  var buildDiv   = document.getElementById('modeBuild');
+  var enhanceDiv = document.getElementById('modeEnhance');
+  if (buildDiv)   buildDiv.style.display   = (mode === 'build')   ? '' : 'none';
+  if (enhanceDiv) enhanceDiv.style.display = (mode === 'enhance') ? '' : 'none';
+  // Sidebar active state
+  var buildLink   = document.getElementById('drawerBuildLink');
+  var enhanceLink = document.getElementById('drawerEnhanceLink');
+  if (buildLink)   buildLink.classList.toggle('di-active',   mode === 'build');
+  if (enhanceLink) enhanceLink.classList.toggle('di-active', mode === 'enhance');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Enhance mode file handling ─────────────────────────────────────────────
+function enhLoadFile(file) {
+  if (!file) return;
+  if (!file.name.match(/\.(pdf|docx)$/i)) return showAlert('warn','Wrong file type.','Upload a .docx or .pdf resume.');
+  clearAlert();
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    fileBuffer = e.target.result;
+    fileName = file.name;
+    var loaded = document.getElementById('enh_loaded');
+    var empty  = document.getElementById('enh_empty');
+    var nameEl = document.getElementById('enh_fileName');
+    if (loaded)  loaded.style.display = '';
+    if (empty)   empty.style.display  = 'none';
+    if (nameEl)  nameEl.textContent   = file.name;
+    var sn1 = document.getElementById('enh_sn1');
+    if (sn1) sn1.textContent = '✓';
+  };
+  reader.readAsArrayBuffer(file);
+}
+function enhReset() {
+  fileBuffer = null; fileName = '';
+  var loaded = document.getElementById('enh_loaded');
+  var empty  = document.getElementById('enh_empty');
+  var sn1    = document.getElementById('enh_sn1');
+  if (loaded) loaded.style.display = 'none';
+  if (empty)  empty.style.display  = '';
+  if (sn1)    sn1.textContent      = '1';
+}
+function onEnhProfileChange(val) {
+  selectedProfile = val;
+  var sn2 = document.getElementById('enh_sn2');
+  if (sn2) sn2.textContent = val ? '✓' : '2';
 }
 
 function setStepDone(idx) {
@@ -1649,10 +1724,12 @@ async function enhance() {
   if (!fileBuffer && !extractedText) return showAlert('warn','No resume loaded.','Upload a file in Step 2, or load your Career Vault.');
 
   busy = true;
-  var enhBtn = document.getElementById('enhanceBtn');
+  // Disable the right enhance button for the current mode
+  var enhBtn = document.getElementById(appMode === 'enhance' ? 'enhanceBtnMain' : 'enhanceBtn');
   if (enhBtn) { enhBtn.disabled = true; enhBtn.innerHTML = '<span class="spin"></span> Enhancing…'; }
   ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){ var el=document.getElementById(id); if(el) el.disabled=true; });
-  document.getElementById('prog').classList.add('on');
+  var progEl = getEl('prog');
+  if (progEl) progEl.classList.add('on');
 
   try {
     // 1. Extract text
@@ -1687,7 +1764,7 @@ async function enhance() {
     ].join('\n');
 
     var maxTok = selectedPages === 1 ? 4000 : selectedPages === 2 ? 8000 : selectedPages === 3 ? 12000 : selectedPages === 4 ? 16000 : 20000;
-    var enhanceInstr = (document.getElementById('enhanceInstructions') || {}).value || '';
+    var enhanceInstr = (document.getElementById(appMode === 'enhance' ? 'enhanceInstructionsEnh' : 'enhanceInstructions') || {}).value || '';
     var prompt = [
       'Enhance and reformat this resume into the platform\'s standard professional structure. Keep it ' + selectedPages + ' page' + (selectedPages > 1 ? 's' : '') + '.',
       '',
@@ -1733,7 +1810,11 @@ async function enhance() {
     // Show preview + download
     document.getElementById('pvPage').innerHTML = buildResumeHtml(enhanced, selectedTemplate);
     addDownload(blob, dlName, '✨', 'Enhanced Resume (.docx)');
-    document.getElementById('dlCard').style.display = 'block';
+    var dlCardEl = getEl('dlCard');
+    if (dlCardEl) {
+      dlCardEl.style.display = 'block';
+      setTimeout(function(){ dlCardEl.scrollIntoView({behavior:'smooth',block:'start'}); }, 150);
+    }
     var enhPdfName = dlName.replace(/\.docx$/i, '.pdf');
     generatePDF(document.getElementById('pvPage'), enhPdfName).then(function(pdfBlob) {
       if (pdfBlob) addDownload(pdfBlob, enhPdfName, '🖨', 'Enhanced Resume (.pdf)');
@@ -1749,7 +1830,8 @@ async function enhance() {
     busy = false;
     if (enhBtn) { enhBtn.disabled = false; enhBtn.innerHTML = '✨ Enhance Resume — no job description needed'; }
     ['buildBtn','buildResumeBtn','buildCoverBtn'].forEach(function(id){ var el=document.getElementById(id); if(el) el.disabled=false; });
-    document.getElementById('buildBtn').innerHTML = '⚡ Build Resume, Cover Letter &amp; Full Analysis';
+    var buildBtnEl = document.getElementById('buildBtn');
+    if (buildBtnEl) buildBtnEl.innerHTML = '⚡ Build Resume, Cover Letter &amp; Full Analysis';
   }
 }
 
@@ -2178,7 +2260,8 @@ function closePreview(){ document.getElementById('previewModal').classList.remov
 // ── UI helpers ─────────────────────────────────────────────────────────────
 var stepIcons=['📂','🧠','📄','✉️','🎯','🔍','💬'];
 function step(n,state){
-  var el=document.getElementById('ps'+n);
+  var el=getEl('ps'+n);
+  if (!el) return;
   el.className='ps'+(state?' '+state:'');
   el.querySelector('.ps-ic').textContent=state==='done'?'✅':state==='active'?'⏳':stepIcons[n-1];
 }
@@ -2190,17 +2273,22 @@ function showAlert(type,title,detail){
 }
 function clearAlert(){ document.getElementById('alert').className='alert'; }
 function clearOutputs(){
-  document.getElementById('dlGrid').innerHTML='';
-  ['dlCard','atsCard','gapCard','iqCard'].forEach(function(id){document.getElementById(id).style.display='none';});
-  document.getElementById('atsContent').innerHTML='';
-  document.getElementById('gapContent').innerHTML='';
-  document.getElementById('iqContent').innerHTML='';
+  var dlGrid = getEl('dlGrid');
+  if (dlGrid) dlGrid.innerHTML='';
+  ['dlCard','atsCard','gapCard','iqCard'].forEach(function(id){
+    var el = getEl(id);
+    if (el) el.style.display='none';
+  });
+  var ac=document.getElementById('atsContent'); if(ac) ac.innerHTML='';
+  var gc=document.getElementById('gapContent'); if(gc) gc.innerHTML='';
+  var iq=document.getElementById('iqContent');  if(iq) iq.innerHTML='';
   resumeBlobRef=null; resumeNameRef='';
 }
 function addDownload(blob,fname,icon,label){
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; a.className='dl-card';
   a.innerHTML='<span class="di">'+icon+'</span><span>'+label+'</span><span class="dn">'+fname+'</span>';
-  document.getElementById('dlGrid').appendChild(a);
+  var dlGrid = getEl('dlGrid');
+  if (dlGrid) dlGrid.appendChild(a);
 }
 
 async function generatePDF(pvElement, pdfName) {
@@ -3418,6 +3506,7 @@ function downloadResumePDF(e) {
 var _origClearOutputs = clearOutputs;
 clearOutputs = function() {
   _origClearOutputs();
+  // Build mode cards
   var pdfCard = document.getElementById('pdfDlCard');
   if (pdfCard) pdfCard.style.display = 'none';
   var clPdfCard = document.getElementById('pdfClDlCard');
@@ -3425,7 +3514,8 @@ clearOutputs = function() {
   var clPrevBtn = document.getElementById('previewClBtn');
   if (clPrevBtn) clPrevBtn.style.display = 'none';
   _clBlobRef = null; _clNameRef = null;
-  document.getElementById('matchPanel').classList.remove('on');
+  var matchPanel = document.getElementById('matchPanel');
+  if (matchPanel) matchPanel.classList.remove('on');
 };
 
 // Clear pre-extracted text and PDF cache on file reset
