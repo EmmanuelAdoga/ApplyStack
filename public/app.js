@@ -989,6 +989,15 @@ function switchAppMode(mode) {
   var enhanceLink = document.getElementById('drawerEnhanceLink');
   if (buildLink)   buildLink.classList.toggle('di-active',   mode === 'build');
   if (enhanceLink) enhanceLink.classList.toggle('di-active', mode === 'enhance');
+  // Sync enhance dropdowns with current global state
+  if (mode === 'enhance') {
+    var ePs = document.getElementById('enh_profileSel');
+    var eTs = document.getElementById('enh_templateSel');
+    var ePg = document.getElementById('enh_pageSel');
+    if (ePs && selectedProfile) ePs.value = selectedProfile;
+    if (eTs && selectedTemplate) eTs.value = selectedTemplate;
+    if (ePg) ePg.value = String(selectedPages);
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
