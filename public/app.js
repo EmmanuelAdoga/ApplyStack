@@ -863,6 +863,8 @@ document.addEventListener('DOMContentLoaded', function() {
       setStepDone(0);
       // Show recommended templates for this profile
       highlightRecommendedTemplates(selectedProfile);
+      // Auto-advance to resume step after brief pause so selection is visible
+      setTimeout(function() { goStep(1); }, 450);
     });
   });
 
@@ -937,6 +939,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ── Stepper ────────────────────────────────────────────────────────────────
+// ── Step wizard navigation ──────────────────────────────────────────────────
+var currentStep = 0;
+function goStep(n) {
+  var panels = document.querySelectorAll('.step-panel');
+  panels.forEach(function(p, i) { p.classList.toggle('active', i === n); });
+  document.querySelectorAll('.step-item').forEach(function(el, i) {
+    el.classList.remove('s-active');
+    if (i === n) el.classList.add('s-active');
+  });
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function setStepDone(idx) {
   var el = document.getElementById('st'+idx);
   if (el) { el.classList.remove('s-active'); el.classList.add('s-done'); el.querySelector('.step-dot').textContent='✓'; }
@@ -965,6 +980,8 @@ function loadFile(file) {
     document.getElementById('badgeName').textContent = file.name;
     document.getElementById('sn1').classList.add('done');
     setStepDone(1);
+    // Auto-advance to job details step
+    if (currentStep === 1) setTimeout(function() { goStep(2); }, 550);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1670,11 +1687,14 @@ async function enhance() {
     ].join('\n');
 
     var maxTok = selectedPages === 1 ? 4000 : selectedPages === 2 ? 8000 : selectedPages === 3 ? 12000 : selectedPages === 4 ? 16000 : 20000;
+    var enhanceInstr = (document.getElementById('enhanceInstructions') || {}).value || '';
     var prompt = [
       'Enhance and reformat this resume into the platform\'s standard professional structure. Keep it ' + selectedPages + ' page' + (selectedPages > 1 ? 's' : '') + '.',
       '',
       'PROFESSIONAL PROFILE: ' + profile.name,
       'EXPERIENCE FORMAT: ' + (isProjectProfile(selectedProfile) ? 'PROJECT-STYLE (projects[] then responsibilities[])' : 'DIRECT BULLETS (projects must be [], all content in responsibilities[])'),
+      '',
+      enhanceInstr.trim() ? 'USER CUSTOMISATION INSTRUCTIONS (apply these while still following all core rules — never fabricate):\n' + enhanceInstr.trim() : '',
       '',
       'RESUME TEXT:',
       resumeText,

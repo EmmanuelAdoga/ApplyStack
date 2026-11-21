@@ -154,6 +154,36 @@
     .step-label { font-size:10.5px; font-weight:600; color:var(--muted); text-align:center; white-space:nowrap; letter-spacing:.2px; }
     .step-item.s-active .step-label { color:var(--navy); font-weight:700; }
     .step-item.s-done   .step-label { color:var(--green); }
+    /* Stepper items are clickable nav */
+    .step-item { cursor:pointer; }
+    .step-item:hover .step-dot { filter:brightness(1.12); }
+
+    /* ── Step wizard panels ── */
+    .step-panel { display:none; flex-direction:column; gap:20px; }
+    .step-panel.active { display:flex; }
+
+    /* ── Step nav bar (Back / Next) ── */
+    .step-nav {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:4px 0 8px;
+    }
+    .step-nav-back {
+      display:flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,.85); border:1.5px solid var(--border);
+      border-radius:var(--r-sm); padding:10px 20px;
+      font-size:13px; font-weight:700; color:var(--muted);
+      cursor:pointer; transition:all var(--t); font-family:inherit;
+    }
+    .step-nav-back:hover { color:var(--text); border-color:var(--mid); background:#fff; }
+    .step-nav-next {
+      display:flex; align-items:center; gap:6px;
+      background:linear-gradient(135deg,var(--navy),var(--mid));
+      color:#fff; border:none; border-radius:var(--r-sm);
+      padding:13px 28px; font-size:14px; font-weight:700;
+      cursor:pointer; transition:all var(--t); font-family:inherit;
+      box-shadow:0 3px 14px rgba(30,58,95,.28);
+    }
+    .step-nav-next:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 5px 18px rgba(30,58,95,.35); }
 
     /* ── Cards · glassmorphism ── */
     .card {
@@ -433,6 +463,32 @@
       font-size:14px; padding:13px 12px;
     }
     #enhanceBtn:hover:not(:disabled) { box-shadow:0 5px 18px rgba(13,122,96,.45); }
+    /* ── Enhance customisation panel ── */
+    .enhance-custom-panel {
+      border:1.5px solid rgba(13,122,96,.25); border-radius:var(--r-sm);
+      background:rgba(240,253,250,.7); overflow:hidden;
+      transition:all .25s;
+    }
+    .enhance-custom-toggle {
+      display:flex; align-items:center; gap:8px; justify-content:space-between;
+      padding:11px 14px; cursor:pointer; user-select:none;
+      font-size:12.5px; font-weight:700; color:#065f46;
+      background:none; border:none; width:100%; font-family:inherit;
+    }
+    .enhance-custom-toggle:hover { background:rgba(13,122,96,.06); }
+    .enhance-custom-toggle .ect-arrow { transition:transform .22s; font-style:normal; font-size:11px; }
+    .enhance-custom-panel.open .ect-arrow { transform:rotate(180deg); }
+    .enhance-custom-body { display:none; padding:0 14px 14px; }
+    .enhance-custom-panel.open .enhance-custom-body { display:block; }
+    #enhanceInstructions {
+      width:100%; box-sizing:border-box; resize:vertical;
+      border:1.5px solid rgba(13,122,96,.2); border-radius:8px;
+      padding:10px 12px; font-size:13px; font-family:inherit; color:var(--text);
+      background:#fff; outline:none; line-height:1.55;
+      transition:border-color .18s;
+    }
+    #enhanceInstructions:focus { border-color:#0d7a60; box-shadow:0 0 0 3px rgba(13,122,96,.12); }
+    .enhance-custom-hint { font-size:11.5px; color:var(--muted); margin-top:7px; line-height:1.5; }
 
     /* ── Progress ── */
     .prog { display:none; flex-direction:column; gap:7px; }
@@ -1001,7 +1057,18 @@
 
       /* Push header & content to the right of the sidebar */
       header { margin-left:230px; }
-      main   { margin-left:230px; max-width: calc(800px + 230px); padding-left:20px; padding-right:20px; }
+      /* True-center the content block in the space to the right of the sidebar.
+         Formula: left margin = half-viewport minus half the box width (420px)
+         minus half the sidebar (115px) = 50vw - 305px.
+         Clamped to 240px minimum so it never overlaps the sidebar.          */
+      main {
+        margin-left: max(240px, calc(50vw - 305px));
+        margin-right: 0;
+        max-width: 840px;
+        width: auto;
+        box-sizing: border-box;
+        padding: 0 20px 100px;
+      }
 
       /* Hide top-bar nav links — they live in the sidebar now */
       .user-link  { display:none !important; }
@@ -1916,7 +1983,7 @@
   z-index:200; display:flex; flex-direction:column; align-items:center;
   opacity:0; transition:opacity .3s; pointer-events:none;
 ">
-  <button onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);" style="
+  <button onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);" style="
     writing-mode:vertical-rl; text-orientation:mixed;
     background:linear-gradient(180deg,#0d7a60,#0cc795);
     color:#fff; border:none; border-radius:10px 0 0 10px;
@@ -1954,7 +2021,7 @@
     <span class="user-email" id="userEmailDisplay">Loading…</span>
     <a href="/" class="user-link">🏠 Home</a>
     <a href="/tracker.html" class="user-link">📋 Tracker</a>
-    <button class="user-link" style="background:linear-gradient(135deg,#0d7a60,#0cc795);color:#fff;border-radius:50px;padding:5px 13px;font-weight:700;" onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});">✨ Enhance</button>
+    <button class="user-link" style="background:linear-gradient(135deg,#0d7a60,#0cc795);color:#fff;border-radius:50px;padding:5px 13px;font-weight:700;" onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);">✨ Enhance</button>
     <button class="user-link user-link-jobs" onclick="openJobMatch()">🎯 Find Jobs</button>
     <a href="/prep.html" class="user-link">🎤 Interview Prep</a>
     <a href="/negotiate.html" class="user-link">💰 Negotiate</a>
@@ -1981,7 +2048,7 @@
     <a href="/" class="app-drawer-item"><span class="di-icon">🏠</span> Home</a>
     <a href="/app.html" class="app-drawer-item di-active"><span class="di-icon">📄</span> Resume Builder</a>
     <a href="/tracker.html" class="app-drawer-item"><span class="di-icon">📋</span> Job Tracker</a>
-    <button class="app-drawer-item" style="background:linear-gradient(135deg,rgba(13,122,96,.12),rgba(12,199,149,.08));border-left:3px solid #0cc795;color:#065f46;font-weight:700;" onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});closeAppDrawer();"><span class="di-icon">✨</span> Enhance Resume</button>
+    <button class="app-drawer-item" style="background:linear-gradient(135deg,rgba(13,122,96,.12),rgba(12,199,149,.08));border-left:3px solid #0cc795;color:#065f46;font-weight:700;" onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);closeAppDrawer();"><span class="di-icon">✨</span> Enhance Resume</button>
     <button class="app-drawer-item" onclick="openJobMatch();closeAppDrawer()"><span class="di-icon">🎯</span> Find Jobs</button>
     <a href="/prep.html" class="app-drawer-item"><span class="di-icon">🎤</span> Interview Prep</a>
     <a href="/negotiate.html" class="app-drawer-item"><span class="di-icon">💰</span> Salary Negotiate</a>
@@ -2078,14 +2145,14 @@
     border-radius:14px; padding:20px 24px; display:flex; align-items:center;
     gap:18px; flex-wrap:wrap; box-shadow:0 4px 20px rgba(13,122,96,.35);
     position:relative; overflow:hidden; cursor:pointer;
-  " onclick="document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);">
+  " onclick="goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);">
     <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 90% 50%,rgba(16,185,129,.18),transparent);pointer-events:none;"></div>
     <span style="font-size:32px;flex-shrink:0">✨</span>
     <div style="flex:1;min-width:200px;">
       <div style="font-weight:800;font-size:15px;color:#fff;line-height:1.3">Already have a resume? Enhance it instantly</div>
       <div style="font-size:12.5px;color:rgba(255,255,255,.75);margin-top:3px">No job description needed · AI cleans, strengthens, and reformats to platform standard</div>
     </div>
-    <button id="enhanceCtaBtn" class="build-btn" onclick="event.stopPropagation();document.getElementById('enhanceBtn').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('enhanceBtn').focus();},400);" style="
+    <button id="enhanceCtaBtn" class="build-btn" onclick="event.stopPropagation();goStep(3);setTimeout(function(){document.getElementById('enhanceBtn').focus();},300);" style="
       background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
       color:#fff;font-size:13px;padding:11px 20px;white-space:nowrap;flex-shrink:0;
       backdrop-filter:blur(8px);
@@ -2094,11 +2161,14 @@
 
   <!-- Stepper -->
   <div class="stepper">
-    <div class="step-item s-active" id="st0"><div class="step-dot">1</div><div class="step-label">Profile</div></div>
-    <div class="step-item"          id="st1"><div class="step-dot">2</div><div class="step-label">Resume</div></div>
-    <div class="step-item"          id="st2"><div class="step-dot">3</div><div class="step-label">Job</div></div>
-    <div class="step-item"          id="st3"><div class="step-dot">4</div><div class="step-label">Build</div></div>
+    <div class="step-item s-active" id="st0" onclick="goStep(0)"><div class="step-dot">1</div><div class="step-label">Profile</div></div>
+    <div class="step-item"          id="st1" onclick="goStep(1)"><div class="step-dot">2</div><div class="step-label">Resume</div></div>
+    <div class="step-item"          id="st2" onclick="goStep(2)"><div class="step-dot">3</div><div class="step-label">Job</div></div>
+    <div class="step-item"          id="st3" onclick="goStep(3)"><div class="step-dot">4</div><div class="step-label">Build</div></div>
   </div>
+
+  <!-- ═══ Step panels: only the active one is visible ═══ -->
+  <div class="step-panel active" id="panel0">
 
   <!-- Step 0: Professional Profile · 18 niches in 6×3 grid -->
   <div class="card">
@@ -2193,6 +2263,13 @@
     </div>
   </div>
 
+  <div class="step-nav">
+    <div></div>
+    <button class="step-nav-next" onclick="goStep(1)">Load Resume →</button>
+  </div>
+  </div><!-- end panel0 -->
+
+  <div class="step-panel" id="panel1">
   <!-- Step 1: Upload / Library / LinkedIn -->
   <div class="card">
     <div class="sec-hdr">
@@ -2463,6 +2540,13 @@
 
   </div>
 
+  <div class="step-nav">
+    <button class="step-nav-back" onclick="goStep(0)">← Profile</button>
+    <button class="step-nav-next" onclick="goStep(2)">Job Details →</button>
+  </div>
+  </div><!-- end panel1 -->
+
+  <div class="step-panel" id="panel2">
   <!-- Step 2: Job details -->
   <div class="card">
     <div class="sec-hdr">
@@ -2497,6 +2581,13 @@
     </div>
   </div>
 
+  <div class="step-nav">
+    <button class="step-nav-back" onclick="goStep(1)">← Resume</button>
+    <button class="step-nav-next" onclick="goStep(3)">Choose Template →</button>
+  </div>
+  </div><!-- end panel2 -->
+
+  <div class="step-panel" id="panel3">
   <!-- Step 3: Template · 13 templates in 4-col grid -->
   <div class="card">
     <div class="sec-hdr">
@@ -2878,6 +2969,20 @@
       <button id="buildCoverBtn"  class="build-btn">✉️ Cover Letter only</button>
     </div>
     <div class="enhance-divider">or</div>
+
+    <!-- Enhance customisation options -->
+    <div class="enhance-custom-panel" id="enhanceCustomPanel">
+      <button class="enhance-custom-toggle" onclick="(function(){var p=document.getElementById('enhanceCustomPanel');p.classList.toggle('open');})()">
+        <span>⚙️ Customise enhancement <span style="font-weight:400;color:#0d7a60;font-size:11.5px">(optional)</span></span>
+        <i class="ect-arrow">▼</i>
+      </button>
+      <div class="enhance-custom-body">
+        <textarea id="enhanceInstructions" rows="4"
+          placeholder="Tell the AI what to adjust, e.g.:&#10;• Focus on ERP and D365 experience&#10;• Expand project descriptions for roles at ABC Corp&#10;• Remove the volunteer section&#10;• Emphasise leadership and stakeholder management"></textarea>
+        <div class="enhance-custom-hint">💡 The AI will apply these instructions while still following all formatting rules. It will never fabricate information.</div>
+      </div>
+    </div>
+
     <button id="enhanceBtn" class="build-btn">✨ Enhance Resume — no job description needed</button>
   </div>
 
@@ -2949,6 +3054,12 @@
       <p style="font-size:12px;color:var(--muted);margin-top:8px">Interactive flashcards with model answers, STAR coaching &amp; self-rating · tailored to this exact JD.</p>
     </div>
   </div>
+
+  <div class="step-nav" style="margin-top:4px">
+    <button class="step-nav-back" onclick="goStep(2)">← Job Details</button>
+    <div></div>
+  </div>
+  </div><!-- end panel3 -->
 
 </main>
 
