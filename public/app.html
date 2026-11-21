@@ -857,6 +857,9 @@
     .card:nth-child(4) { animation-delay:.16s; }
     .card:nth-child(5) { animation-delay:.20s; }
     .card:nth-child(n+6) { animation-delay:.24s; }
+    /* Enhance mode: instant show, no opacity animation */
+    #modeEnhance { display:flex; flex-direction:column; gap:20px; }
+    #modeEnhance .card { animation:none; opacity:1; transform:none; }
     #guideCard { animation:fadeUp .35s ease both; }
     .stepper { animation:fadeUp .3s ease both .02s; }
 

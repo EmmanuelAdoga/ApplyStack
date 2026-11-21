@@ -982,8 +982,8 @@ function switchAppMode(mode) {
   appMode = mode;
   var buildDiv   = document.getElementById('modeBuild');
   var enhanceDiv = document.getElementById('modeEnhance');
-  if (buildDiv)   buildDiv.style.display   = (mode === 'build')   ? '' : 'none';
-  if (enhanceDiv) enhanceDiv.style.display = (mode === 'enhance') ? '' : 'none';
+  if (buildDiv)   buildDiv.style.display   = (mode === 'build')   ? ''     : 'none';
+  if (enhanceDiv) enhanceDiv.style.display = (mode === 'enhance') ? 'flex' : 'none';
   // Sidebar active state
   var buildLink   = document.getElementById('drawerBuildLink');
   var enhanceLink = document.getElementById('drawerEnhanceLink');
