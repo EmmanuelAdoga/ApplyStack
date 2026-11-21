@@ -3102,29 +3102,30 @@
         <div class="sec-hdr-text"><h2>Settings &amp; customisation</h2><p>Tell the AI how to shape your resume</p></div>
       </div>
 
-      <div class="f">
-        <label>Professional profile</label>
-        <select id="enh_profileSel" onchange="onEnhProfileChange(this.value)">
-          <option value="">— Choose your field —</option>
-          <option value="tech">💻 Software &amp; Tech</option>
-          <option value="business">📊 Business &amp; Ops</option>
-          <option value="finance">💰 Finance &amp; Accounting</option>
-          <option value="healthcare">🏥 Healthcare &amp; Clinical</option>
-          <option value="marketing">📢 Marketing &amp; Creative</option>
-          <option value="pm">🗂️ Project Management</option>
-          <option value="sales">💼 Sales &amp; Biz Dev</option>
-          <option value="legal">⚖️ Legal &amp; Compliance</option>
-          <option value="data">🤖 Data Science &amp; AI</option>
-          <option value="engineering">⚙️ Engineering (Civil/Mech/Elec)</option>
-          <option value="education">🎓 Education &amp; Teaching</option>
-          <option value="hr">👥 Human Resources</option>
-          <option value="ux">🎨 UX/UI &amp; Product Design</option>
-          <option value="cyber">🔐 Cybersecurity &amp; IT</option>
-          <option value="supplychain">🚚 Supply Chain &amp; Logistics</option>
-          <option value="government">🏛️ Government &amp; Public Sector</option>
-          <option value="nonprofit">💚 Non-Profit &amp; Social Impact</option>
-          <option value="erp">⚙️ ERP / Business Systems</option>
-        </select>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:10px">Professional profile</label>
+        <div class="profile-grid" id="enh_profileGrid">
+          <div class="profile-card enh-profile-card" data-profile="tech"><span class="profile-icon">💻</span><div class="profile-name">Software &amp; Tech</div></div>
+          <div class="profile-card enh-profile-card" data-profile="business"><span class="profile-icon">📊</span><div class="profile-name">Business &amp; Ops</div></div>
+          <div class="profile-card enh-profile-card" data-profile="finance"><span class="profile-icon">💰</span><div class="profile-name">Finance &amp; Accounting</div></div>
+          <div class="profile-card enh-profile-card" data-profile="healthcare"><span class="profile-icon">🏥</span><div class="profile-name">Healthcare &amp; Clinical</div></div>
+          <div class="profile-card enh-profile-card" data-profile="marketing"><span class="profile-icon">📢</span><div class="profile-name">Marketing &amp; Creative</div></div>
+          <div class="profile-card enh-profile-card" data-profile="pm"><span class="profile-icon">🗂️</span><div class="profile-name">Project Management</div></div>
+          <div class="profile-card enh-profile-card" data-profile="sales"><span class="profile-icon">💼</span><div class="profile-name">Sales &amp; Biz Dev</div></div>
+          <div class="profile-card enh-profile-card" data-profile="legal"><span class="profile-icon">⚖️</span><div class="profile-name">Legal &amp; Compliance</div></div>
+          <div class="profile-card enh-profile-card" data-profile="data"><span class="profile-icon">🤖</span><div class="profile-name">Data Science &amp; AI</div></div>
+          <div class="profile-card enh-profile-card" data-profile="engineering"><span class="profile-icon">⚙️</span><div class="profile-name">Engineering (Civil/ Mech/ Elec)</div></div>
+          <div class="profile-card enh-profile-card" data-profile="education"><span class="profile-icon">🎓</span><div class="profile-name">Education &amp; Teaching</div></div>
+          <div class="profile-card enh-profile-card" data-profile="hr"><span class="profile-icon">👥</span><div class="profile-name">Human Resources</div></div>
+          <div class="profile-card enh-profile-card" data-profile="ux"><span class="profile-icon">🎨</span><div class="profile-name">UX/UI &amp; Product Design</div></div>
+          <div class="profile-card enh-profile-card" data-profile="cyber"><span class="profile-icon">🔐</span><div class="profile-name">Cybersecurity &amp; IT</div></div>
+          <div class="profile-card enh-profile-card" data-profile="supplychain"><span class="profile-icon">🚚</span><div class="profile-name">Supply Chain &amp; Logistics</div></div>
+          <div class="profile-card enh-profile-card" data-profile="government"><span class="profile-icon">🏛️</span><div class="profile-name">Government &amp; Public Sector</div></div>
+          <div class="profile-card enh-profile-card" data-profile="nonprofit"><span class="profile-icon">💚</span><div class="profile-name">Non-Profit &amp; Social Impact</div></div>
+          <div class="profile-card enh-profile-card" data-profile="realestate"><span class="profile-icon">🏠</span><div class="profile-name">Real Estate &amp; Property</div></div>
+        </div>
+        <!-- hidden select kept for JS sync compatibility -->
+        <select id="enh_profileSel" style="display:none" onchange="onEnhProfileChange(this.value)"></select>
       </div>
 
       <div class="f">
@@ -3497,7 +3498,7 @@
   // ── End app hamburger ─────────────────────────────────
 
 </script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 
 <!-- Upgrade Modal -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.72);display:none;align-items:center;justify-content:center;padding:20px">

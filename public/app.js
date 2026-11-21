@@ -864,18 +864,27 @@ document.addEventListener('DOMContentLoaded', function() {
     var a = document.createElement('a'); a.href = URL.createObjectURL(resumeBlobRef); a.download = resumeNameRef; a.click();
   });
 
-  // Profile card selection
+  // Profile card selection (build mode + enhance mode)
   document.querySelectorAll('.profile-card').forEach(function(card) {
     card.addEventListener('click', function() {
-      document.querySelectorAll('.profile-card').forEach(function(c) { c.classList.remove('selected'); });
-      card.classList.add('selected');
-      selectedProfile = card.getAttribute('data-profile');
-      document.getElementById('sn0').classList.add('done');
-      setStepDone(0);
-      // Show recommended templates for this profile
-      highlightRecommendedTemplates(selectedProfile);
-      // Auto-advance to resume step after brief pause so selection is visible
-      setTimeout(function() { goStep(1); }, 450);
+      var isEnh = card.classList.contains('enh-profile-card');
+      if (isEnh) {
+        // Enhance mode grid: only deselect/select enhance cards
+        document.querySelectorAll('.enh-profile-card').forEach(function(c) { c.classList.remove('selected'); });
+        card.classList.add('selected');
+        onEnhProfileChange(card.getAttribute('data-profile'));
+      } else {
+        // Build mode grid
+        document.querySelectorAll('.profile-card:not(.enh-profile-card)').forEach(function(c) { c.classList.remove('selected'); });
+        card.classList.add('selected');
+        selectedProfile = card.getAttribute('data-profile');
+        document.getElementById('sn0').classList.add('done');
+        setStepDone(0);
+        // Show recommended templates for this profile
+        highlightRecommendedTemplates(selectedProfile);
+        // Auto-advance to resume step after brief pause so selection is visible
+        setTimeout(function() { goStep(1); }, 450);
+      }
     });
   });
 
@@ -989,8 +998,14 @@ function switchAppMode(mode) {
   var enhanceLink = document.getElementById('drawerEnhanceLink');
   if (buildLink)   buildLink.classList.toggle('di-active',   mode === 'build');
   if (enhanceLink) enhanceLink.classList.toggle('di-active', mode === 'enhance');
-  // Sync enhance dropdowns with current global state
+  // Sync enhance controls with current global state
   if (mode === 'enhance') {
+    // Sync profile grid: mark the matching card selected
+    document.querySelectorAll('.enh-profile-card').forEach(function(c) { c.classList.remove('selected'); });
+    if (selectedProfile) {
+      var epc = document.querySelector('.enh-profile-card[data-profile="' + selectedProfile + '"]');
+      if (epc) epc.classList.add('selected');
+    }
     var ePs = document.getElementById('enh_profileSel');
     var eTs = document.getElementById('enh_templateSel');
     var ePg = document.getElementById('enh_pageSel');
@@ -2825,9 +2840,14 @@ function saveSession(includeTailored) {
 function restoreSession(data) {
   if (!data) return;
   if (data.profile) {
-    document.querySelectorAll('.profile-card').forEach(function(c) { c.classList.remove('selected'); });
-    var pc = document.querySelector('.profile-card[data-profile="'+data.profile+'"]');
+    // Restore build-mode profile grid
+    document.querySelectorAll('.profile-card:not(.enh-profile-card)').forEach(function(c) { c.classList.remove('selected'); });
+    var pc = document.querySelector('.profile-card:not(.enh-profile-card)[data-profile="'+data.profile+'"]');
     if (pc) { pc.classList.add('selected'); selectedProfile = data.profile; setStepDone(0); }
+    // Restore enhance-mode profile grid
+    document.querySelectorAll('.enh-profile-card').forEach(function(c) { c.classList.remove('selected'); });
+    var epc = document.querySelector('.enh-profile-card[data-profile="'+data.profile+'"]');
+    if (epc) epc.classList.add('selected');
   }
   if (data.template) {
     document.querySelectorAll('.template-card').forEach(function(c) { c.classList.remove('selected'); });
