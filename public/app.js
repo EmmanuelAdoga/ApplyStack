@@ -958,22 +958,52 @@ document.addEventListener('DOMContentLoaded', function() {
   initCustomizer();
 });
 
-// ── Stepper ────────────────────────────────────────────────────────────────
-// ── Step wizard navigation ──────────────────────────────────────────────────
+// ── Progressive reveal wizard navigation ───────────────────────────────────
 var currentStep = 0;
 var appMode = 'build';
+
+// Unlock wizard sections 0..n and scroll to section n
 function goStep(n) {
-  var panels = document.querySelectorAll('.step-panel');
-  panels.forEach(function(p, i) { p.classList.toggle('active', i === n); });
-  document.querySelectorAll('.step-item').forEach(function(el, i) {
-    el.classList.remove('s-active');
-    if (i === n) el.classList.add('s-active');
-  });
   currentStep = n;
-  // Scroll to the stepper bar so the active panel is immediately visible
-  var stepper = document.querySelector('.stepper');
-  if (stepper) stepper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  else window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Unlock panels 0 through n
+  for (var i = 0; i <= n; i++) {
+    var p = document.getElementById('panel' + i);
+    if (p) p.classList.remove('wz-locked');
+  }
+  // Scroll to target panel after a brief delay
+  if (n > 0) {
+    var target = document.getElementById('panel' + n);
+    if (target) {
+      setTimeout(function(el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }.bind(null, target), 120);
+    }
+  }
+  // Update separator visuals
+  refreshWzSeps();
+}
+
+// Update section separator dot/label styles based on unlock state
+function refreshWzSeps() {
+  var seps = [
+    { dot:'wz-dot2', lbl:'wz-lbl2', la:'wz-line2a', lb:'wz-line2b', panel:'panel1' },
+    { dot:'wz-dot3', lbl:'wz-lbl3', la:'wz-line3a', lb:'wz-line3b', panel:'panel2' },
+    { dot:'wz-dot4', lbl:'wz-lbl4', la:'wz-line4a', lb:'wz-line4b', panel:'panel3' }
+  ];
+  seps.forEach(function(s) {
+    var p     = document.getElementById(s.panel);
+    var dot   = document.getElementById(s.dot);
+    var lbl   = document.getElementById(s.lbl);
+    var la    = document.getElementById(s.la);
+    var lb    = document.getElementById(s.lb);
+    if (!p || !dot) return;
+    var locked = p.classList.contains('wz-locked');
+    dot.classList.toggle('active', !locked);
+    dot.classList.toggle('done',    false); // done handled separately
+    if (lbl) { lbl.classList.toggle('active', !locked); }
+    if (la)  { la.classList.toggle('done',   !locked); }
+    if (lb)  { lb.classList.toggle('done',   !locked); }
+  });
 }
 
 // ── Mode-aware element helper ───────────────────────────────────────────────
@@ -1052,14 +1082,15 @@ function onEnhProfileChange(val) {
 }
 
 function setStepDone(idx) {
-  var el = document.getElementById('st'+idx);
-  if (el) { el.classList.remove('s-active'); el.classList.add('s-done'); el.querySelector('.step-dot').textContent='✓'; }
+  // Legacy function: now also unlocks the next section
+  var nextPanel = document.getElementById('panel' + (idx + 1));
+  if (nextPanel) nextPanel.classList.remove('wz-locked');
+  refreshWzSeps();
 }
 function refreshStepper() {
-  if (selectedProfile)                                    setStepDone(0);
-  if (fileBuffer || extractedText)                        setStepDone(1);
-  if (document.getElementById('jd').value.trim())         setStepDone(2);
-  if (selectedTemplate)                                   setStepDone(3);
+  if (selectedProfile)                                   setStepDone(0);
+  if (fileBuffer || extractedText)                       { setStepDone(1); setStepDone(0); }
+  if (document.getElementById('jd') && document.getElementById('jd').value.trim()) setStepDone(2);
 }
 
 // ── File handling ──────────────────────────────────────────────────────────
@@ -2867,7 +2898,16 @@ function restoreSession(data) {
     resumeNameRef = data.resumeName || '';
     document.getElementById('pvPage').innerHTML = buildResumeHtml(tailoredRef, selectedTemplate);
   }
+  // Unlock sections silently (no scroll) based on restored state
   refreshStepper();
+  // Always unlock panel3 if profile + template are restored (session was complete)
+  if (data.profile && data.template) {
+    ['panel1','panel2','panel3'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('wz-locked');
+    });
+    refreshWzSeps();
+  }
 }
 
 function checkForSavedSession() {

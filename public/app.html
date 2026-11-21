@@ -143,47 +143,39 @@
     /* ── Layout ── */
     main { max-width:800px; margin:32px auto; padding:0 20px 100px; display:flex; flex-direction:column; gap:20px; position:relative; z-index:1; }
 
-    /* ── Stepper ── */
-    .stepper { display:flex; align-items:flex-start; background:rgba(255,255,255,.88); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:1px solid rgba(255,255,255,.6); border-radius:var(--r); padding:16px 20px; box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.7); position:relative; z-index:1; }
-    .step-item { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; position:relative; }
-    .step-item:not(:last-child)::after { content:''; position:absolute; top:16px; left:58%; right:-42%; height:2px; background:var(--border); z-index:0; transition:background .4s; border-radius:99px; }
-    .step-item.s-done:not(:last-child)::after { background:linear-gradient(90deg,var(--green),#22c55e); }
-    .step-dot { width:32px; height:32px; border-radius:50%; background:var(--border); color:var(--muted); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; transition:all .25s; border:2px solid transparent; }
-    .step-item.s-active .step-dot { background:linear-gradient(135deg,var(--navy),var(--mid)); color:#fff; border-color:rgba(30,58,95,.3); box-shadow:0 0 0 4px rgba(30,58,95,.12); }
-    .step-item.s-done   .step-dot { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-color:rgba(22,163,74,.2); }
-    .step-label { font-size:10.5px; font-weight:600; color:var(--muted); text-align:center; white-space:nowrap; letter-spacing:.2px; }
-    .step-item.s-active .step-label { color:var(--navy); font-weight:700; }
-    .step-item.s-done   .step-label { color:var(--green); }
-    /* Stepper items are clickable nav */
-    .step-item { cursor:pointer; }
-    .step-item:hover .step-dot { filter:brightness(1.12); }
+    /* ── Progressive reveal wizard ── */
+    .step-panel { display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px; }
+    .step-panel.wz-locked { opacity:.32; pointer-events:none; user-select:none; }
 
-    /* ── Step wizard panels ── */
-    .step-panel { display:none; flex-direction:column; gap:20px; }
-    .step-panel.active { display:flex; }
+    /* Section separator between wizard steps */
+    .wz-sep { display:flex; align-items:center; gap:14px; padding:4px 0; }
+    .wz-sep-line { flex:1; height:2px; background:var(--border); border-radius:99px; transition:background .4s; }
+    .wz-sep-line.done { background:linear-gradient(90deg,var(--green),#22c55e); }
+    .wz-sep-dot { width:36px; height:36px; border-radius:50%; background:var(--border); color:var(--muted); font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .3s; }
+    .wz-sep-dot.active { background:linear-gradient(135deg,var(--navy),var(--mid)); color:#fff; box-shadow:0 0 0 4px rgba(30,58,95,.12); }
+    .wz-sep-dot.done { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+    .wz-sep-label { font-size:12.5px; font-weight:700; color:var(--muted); white-space:nowrap; letter-spacing:.2px; }
+    .wz-sep-label.active { color:var(--navy); }
+    .wz-sep-label.done { color:var(--green); }
 
-    /* ── Step nav bar (Back / Next) ── */
-    .step-nav {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:4px 0 8px;
-    }
-    .step-nav-back {
-      display:flex; align-items:center; gap:6px;
-      background:rgba(255,255,255,.85); border:1.5px solid var(--border);
-      border-radius:var(--r-sm); padding:10px 20px;
-      font-size:13px; font-weight:700; color:var(--muted);
-      cursor:pointer; transition:all var(--t); font-family:inherit;
-    }
-    .step-nav-back:hover { color:var(--text); border-color:var(--mid); background:#fff; }
-    .step-nav-next {
-      display:flex; align-items:center; gap:6px;
-      background:linear-gradient(135deg,var(--navy),var(--mid));
-      color:#fff; border:none; border-radius:var(--r-sm);
-      padding:13px 28px; font-size:14px; font-weight:700;
-      cursor:pointer; transition:all var(--t); font-family:inherit;
-      box-shadow:0 3px 14px rgba(30,58,95,.28);
-    }
-    .step-nav-next:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 5px 18px rgba(30,58,95,.35); }
+    /* Font toolbar toggle */
+    .ft-toggle-btn { width:100%; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,.7); border:1.5px solid var(--border); border-radius:var(--r-sm); padding:10px 16px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; font-family:inherit; transition:all var(--t); }
+    .ft-toggle-btn:hover { border-color:var(--mid); color:var(--text); background:#fff; }
+    .ft-toggle-btn .ft-arr { transition:transform .25s; font-style:normal; }
+    .ft-toggle-btn.open .ft-arr { transform:rotate(180deg); }
+    .font-toolbar { display:none; }
+    .font-toolbar.ft-open { display:flex; }
+
+    /* CL settings toggle */
+    .cl-toggle-btn { width:100%; display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,.7); border:1.5px solid var(--border); border-radius:var(--r-sm); padding:10px 16px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; font-family:inherit; transition:all var(--t); margin-bottom:0; }
+    .cl-toggle-btn:hover { border-color:var(--mid); color:var(--text); background:#fff; }
+    .cl-toggle-btn .ft-arr { transition:transform .25s; font-style:normal; }
+    .cl-toggle-btn.open .ft-arr { transform:rotate(180deg); }
+    .cl-settings { display:none; }
+    .cl-settings.cl-open { display:block; }
+
+    /* Suppress old stepper/step-nav (kept for markup compat) */
+    .stepper, .step-item, .step-nav, .step-nav-back, .step-nav-next { display:none !important; }
 
     /* ── Cards · glassmorphism ── */
     .card {
@@ -2155,8 +2147,8 @@
     <div class="step-item"          id="st3" onclick="goStep(3)"><div class="step-dot">4</div><div class="step-label">Build</div></div>
   </div>
 
-  <!-- ═══ Step panels: only the active one is visible ═══ -->
-  <div class="step-panel active" id="panel0">
+  <!-- ═══ Progressive reveal wizard sections ═══ -->
+  <div class="step-panel" id="panel0">
 
   <!-- Step 0: Professional Profile · 18 niches in 6×3 grid -->
   <div class="card">
@@ -2257,7 +2249,15 @@
   </div>
   </div><!-- end panel0 -->
 
-  <div class="step-panel" id="panel1">
+  <!-- Section separator 2 -->
+  <div class="wz-sep" id="wz-sep2">
+    <div class="wz-sep-line" id="wz-line2a"></div>
+    <div class="wz-sep-dot" id="wz-dot2">2</div>
+    <span class="wz-sep-label" id="wz-lbl2">Upload Your Resume</span>
+    <div class="wz-sep-line" id="wz-line2b"></div>
+  </div>
+
+  <div class="step-panel wz-locked" id="panel1">
   <!-- Step 1: Upload / Library / LinkedIn -->
   <div class="card">
     <div class="sec-hdr">
@@ -2535,7 +2535,15 @@
   </div>
   </div><!-- end panel1 -->
 
-  <div class="step-panel" id="panel2">
+  <!-- Section separator 3 -->
+  <div class="wz-sep" id="wz-sep3">
+    <div class="wz-sep-line" id="wz-line3a"></div>
+    <div class="wz-sep-dot" id="wz-dot3">3</div>
+    <span class="wz-sep-label" id="wz-lbl3">The Role You're Targeting</span>
+    <div class="wz-sep-line" id="wz-line3b"></div>
+  </div>
+
+  <div class="step-panel wz-locked" id="panel2">
   <!-- Step 2: Job details -->
   <div class="card">
     <div class="sec-hdr">
@@ -2576,7 +2584,15 @@
   </div>
   </div><!-- end panel2 -->
 
-  <div class="step-panel" id="panel3">
+  <!-- Section separator 4 -->
+  <div class="wz-sep" id="wz-sep4">
+    <div class="wz-sep-line" id="wz-line4a"></div>
+    <div class="wz-sep-dot" id="wz-dot4">4</div>
+    <span class="wz-sep-label" id="wz-lbl4">Choose Template &amp; Build</span>
+    <div class="wz-sep-line" id="wz-line4b"></div>
+  </div>
+
+  <div class="step-panel wz-locked" id="panel3">
   <!-- Step 3: Template · 13 templates in 4-col grid -->
   <div class="card">
     <div class="sec-hdr">
@@ -2745,8 +2761,12 @@
 
     </div><!-- end .template-grid -->
 
-    <!-- ── Font / Typography toolbar ── -->
-    <div class="font-toolbar">
+    <!-- ── Font / Typography toggle ── -->
+    <button class="ft-toggle-btn" id="ftToggleBtn" onclick="(function(){var tb=document.getElementById('ftToolbar');var btn=document.getElementById('ftToggleBtn');tb.classList.toggle('ft-open');btn.classList.toggle('open');})()">
+      <span>🔡 Customise typography <span style="font-weight:400;font-size:11.5px;color:var(--muted)">(optional)</span></span>
+      <i class="ft-arr">▼</i>
+    </button>
+    <div class="font-toolbar" id="ftToolbar">
       <span class="ft-aa">Aa</span>
       <div class="ft-group">
         <span class="ft-lbl">Font</span>
@@ -2913,8 +2933,12 @@
     <div id="matchContent"></div>
   </div>
 
-  <!-- Cover Letter Settings -->
-  <div class="card cl-settings">
+  <!-- Cover Letter Settings (collapsed by default) -->
+  <button class="cl-toggle-btn" id="clToggleBtn" onclick="(function(){var cs=document.getElementById('clSettingsCard');var btn=document.getElementById('clToggleBtn');cs.classList.toggle('cl-open');btn.classList.toggle('open');})()">
+    <span>✉️ Cover letter settings <span style="font-weight:400;font-size:11.5px;color:var(--muted)">(optional)</span></span>
+    <i class="ft-arr">▼</i>
+  </button>
+  <div class="card cl-settings" id="clSettingsCard">
     <div class="sec-hdr" style="margin-bottom:12px">
       <span style="font-size:20px">✉️</span>
       <div class="sec-hdr-text">
@@ -2957,22 +2981,6 @@
       <button id="buildResumeBtn" class="build-btn">📋 Resume only</button>
       <button id="buildCoverBtn"  class="build-btn">✉️ Cover Letter only</button>
     </div>
-    <div class="enhance-divider">or</div>
-
-    <!-- Enhance customisation options -->
-    <div class="enhance-custom-panel" id="enhanceCustomPanel">
-      <button class="enhance-custom-toggle" onclick="(function(){var p=document.getElementById('enhanceCustomPanel');p.classList.toggle('open');})()">
-        <span>⚙️ Customise enhancement <span style="font-weight:400;color:#0d7a60;font-size:11.5px">(optional)</span></span>
-        <i class="ect-arrow">▼</i>
-      </button>
-      <div class="enhance-custom-body">
-        <textarea id="enhanceInstructions" rows="4"
-          placeholder="Tell the AI what to adjust, e.g.:&#10;• Focus on ERP and D365 experience&#10;• Expand project descriptions for roles at ABC Corp&#10;• Remove the volunteer section&#10;• Emphasise leadership and stakeholder management"></textarea>
-        <div class="enhance-custom-hint">💡 The AI will apply these instructions while still following all formatting rules. It will never fabricate information.</div>
-      </div>
-    </div>
-
-    <button id="enhanceBtn" class="build-btn">✨ Enhance Resume — no job description needed</button>
   </div>
 
   <!-- Progress -->
@@ -3498,7 +3506,7 @@
   // ── End app hamburger ─────────────────────────────────
 
 </script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 
 <!-- Upgrade Modal -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.72);display:none;align-items:center;justify-content:center;padding:20px">
