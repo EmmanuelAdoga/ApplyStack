@@ -1809,9 +1809,9 @@ async function build(){
     document.getElementById('dlCard').scrollIntoView({behavior:'smooth',block:'start'});
 
     // ── Auto-save session & add tracker entry ──────────────────────────────
-    saveSession(true);
+    try { saveSession(true); } catch(e) { console.warn('saveSession failed:', e); }
     var trackerAts = (atsResultRef && atsResultRef.overallScore !== undefined) ? atsResultRef.overallScore : null;
-    addTrackerEntry(company, role, selectedTemplate, selectedProfile, trackerAts, jd, resumeBlob, rName, clBlob, cName);
+    try { await addTrackerEntry(company, role, selectedTemplate, selectedProfile, trackerAts, jd, resumeBlob, rName, clBlob, cName); } catch(e) { console.error('addTrackerEntry failed:', e); }
 
     // Save interview context so Interview Coach can auto-load JD + role
     try {
@@ -3096,8 +3096,8 @@ async function addTrackerEntry(company, role, template, profile, atsScore, jd, r
     resumeFileName:      savedResumeName,   // just the name; data lives in tc_file_<id>_resume
     coverLetterFileName: savedCoverName,    // just the name; data lives in tc_file_<id>_cover
   });
-  saveTracker(entries);
-  renderTracker();
+  try { saveTracker(entries); } catch(e) { console.error('saveTracker failed:', e); }
+  try { renderTracker(); } catch(e) { console.error('renderTracker failed:', e); }
 }
 
 function renderTracker() {
