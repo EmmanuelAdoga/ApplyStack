@@ -1774,6 +1774,11 @@ async function build(){
       step(4,'done'); // mark done but skip
     }
 
+    // ── Add tracker entry as soon as resume is built (before ATS/gap steps that can fail) ──
+    try { await addTrackerEntry(company, role, selectedTemplate, selectedProfile, null, jd, resumeBlob, rName, clBlob, cName); } catch(e) { console.error('addTrackerEntry failed:', e); }
+    // Open tracker sidebar briefly so user sees the new entry
+    openTracker();
+
     // Show downloads — only the files that were built
     document.getElementById('pvPage').innerHTML = buildResumeHtml(tailored,selectedTemplate);
     if (resumeBlob) addDownload(resumeBlob, rName, '📄', 'Resume (.docx)');
@@ -1808,10 +1813,8 @@ async function build(){
 
     document.getElementById('dlCard').scrollIntoView({behavior:'smooth',block:'start'});
 
-    // ── Auto-save session & add tracker entry ──────────────────────────────
+    // ── Auto-save session ──────────────────────────────────────────────────
     try { saveSession(true); } catch(e) { console.warn('saveSession failed:', e); }
-    var trackerAts = (atsResultRef && atsResultRef.overallScore !== undefined) ? atsResultRef.overallScore : null;
-    try { await addTrackerEntry(company, role, selectedTemplate, selectedProfile, trackerAts, jd, resumeBlob, rName, clBlob, cName); } catch(e) { console.error('addTrackerEntry failed:', e); }
 
     // Save interview context so Interview Coach can auto-load JD + role
     try {
