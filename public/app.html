@@ -852,6 +852,24 @@
     /* Enhance mode: instant show, no opacity animation */
     #modeEnhance { display:flex; flex-direction:column; gap:20px; }
     #modeEnhance .card { animation:none; opacity:1; transform:none; }
+    /* ── Enhance mode progressive sections ── */
+    .enh-section { display:flex; flex-direction:column; gap:20px; scroll-margin-top:80px; }
+    .enh-section.wz-locked { opacity:.32; pointer-events:none; user-select:none; }
+    /* ── Enhance template cards (mirror .template-card) ── */
+    .enh-template-card {
+      border:1.5px solid rgba(255,255,255,.4);
+      border-radius:var(--r-sm);
+      padding:10px;
+      cursor:pointer;
+      transition:all var(--t);
+      background:rgba(255,255,255,.75);
+      backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      user-select:none;
+      position:relative;
+    }
+    .enh-template-card:hover { border-color:rgba(91,99,240,.5); transform:translateY(-2px); box-shadow:var(--shadow-md); background:rgba(255,255,255,.92); }
+    .enh-template-card:active { transform:translateY(0); }
+    .enh-template-card.selected { border-color:var(--accent); background:rgba(238,242,255,.92); box-shadow:0 0 0 3px rgba(91,99,240,.15),var(--shadow-md); }
     #guideCard { animation:fadeUp .35s ease both; }
     .stepper { animation:fadeUp .3s ease both .02s; }
 
@@ -3073,45 +3091,51 @@
       <p style="color:rgba(255,255,255,.8);font-size:14px;margin:0">AI cleans, strengthens, and reformats to a professional platform standard — no job description needed</p>
     </div>
 
-    <!-- Step 1: Load resume -->
-    <div class="card">
-      <div class="sec-hdr">
-        <div class="sec-num" id="enh_sn1" style="background:#0d7a60">1</div>
-        <div class="sec-hdr-text"><h2>Load your resume</h2><p>Upload a .docx or .pdf file</p></div>
-      </div>
-
-      <!-- Loaded state -->
-      <div id="enh_loaded" style="display:none">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f0fdf4;border:1.5px solid var(--green);border-radius:9px;margin-bottom:8px">
-          <span style="font-size:22px">✅</span>
-          <div style="flex:1">
-            <div id="enh_fileName" style="font-weight:700;color:var(--navy);font-size:14px">file.docx</div>
-            <div style="font-size:12px;color:var(--green);margin-top:1px">Ready to enhance</div>
-          </div>
-          <button onclick="enhReset()" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--muted);font-family:inherit">Change</button>
+    <!-- ── Section 1: Load resume (always active) ── -->
+    <div class="enh-section" id="enh-s1">
+      <div class="card">
+        <div class="sec-hdr">
+          <div class="sec-num" id="enh_sn1" style="background:#0d7a60">1</div>
+          <div class="sec-hdr-text"><h2>Load your resume</h2><p>Upload a .docx or .pdf file</p></div>
         </div>
-      </div>
-
-      <!-- Empty state -->
-      <div id="enh_empty">
-        <div class="dz" id="enh_dz" onclick="document.getElementById('enh_fileInput').click()" style="cursor:pointer">
-          <input type="file" id="enh_fileInput" accept=".docx,.pdf" style="display:none">
-          <span class="dz-icon" id="enh_dzIcon">📎</span>
-          <div class="dz-title">Drop your resume here</div>
-          <div class="dz-sub">Accepts <b>.docx</b> and <b>.pdf</b> · or click to browse</div>
+        <!-- Loaded state -->
+        <div id="enh_loaded" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f0fdf4;border:1.5px solid var(--green);border-radius:9px;margin-bottom:8px">
+            <span style="font-size:22px">✅</span>
+            <div style="flex:1">
+              <div id="enh_fileName" style="font-weight:700;color:var(--navy);font-size:14px">file.docx</div>
+              <div style="font-size:12px;color:var(--green);margin-top:1px">Ready to enhance</div>
+            </div>
+            <button onclick="enhReset()" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--muted);font-family:inherit">Change</button>
+          </div>
+        </div>
+        <!-- Empty state -->
+        <div id="enh_empty">
+          <div class="dz" id="enh_dz" onclick="document.getElementById('enh_fileInput').click()" style="cursor:pointer">
+            <input type="file" id="enh_fileInput" accept=".docx,.pdf" style="display:none">
+            <span class="dz-icon" id="enh_dzIcon">📎</span>
+            <div class="dz-title">Drop your resume here</div>
+            <div class="dz-sub">Accepts <b>.docx</b> and <b>.pdf</b> · or click to browse</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Step 2: Settings -->
-    <div class="card">
-      <div class="sec-hdr">
-        <div class="sec-num" id="enh_sn2" style="background:#0d7a60">2</div>
-        <div class="sec-hdr-text"><h2>Settings &amp; customisation</h2><p>Tell the AI how to shape your resume</p></div>
-      </div>
+    <!-- Sep 2 -->
+    <div class="wz-sep" id="enh-sep2">
+      <div class="wz-sep-line" id="enh-line2a"></div>
+      <div class="wz-sep-dot" id="enh-dot2">2</div>
+      <span class="wz-sep-label" id="enh-lbl2">Choose Your Field</span>
+      <div class="wz-sep-line" id="enh-line2b"></div>
+    </div>
 
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:10px">Professional profile</label>
+    <!-- ── Section 2: Professional profile (locked until file loaded) ── -->
+    <div class="enh-section wz-locked" id="enh-s2">
+      <div class="card">
+        <div class="sec-hdr">
+          <div class="sec-num" id="enh_sn2" style="background:#0d7a60">2</div>
+          <div class="sec-hdr-text"><h2>Your professional field</h2><p>Tailors the AI tone and vocabulary to your sector</p></div>
+        </div>
         <div class="profile-grid" id="enh_profileGrid">
           <div class="profile-card enh-profile-card" data-profile="tech"><span class="profile-icon">💻</span><div class="profile-name">Software &amp; Tech</div></div>
           <div class="profile-card enh-profile-card" data-profile="business"><span class="profile-icon">📊</span><div class="profile-name">Business &amp; Ops</div></div>
@@ -3132,67 +3156,187 @@
           <div class="profile-card enh-profile-card" data-profile="nonprofit"><span class="profile-icon">💚</span><div class="profile-name">Non-Profit &amp; Social Impact</div></div>
           <div class="profile-card enh-profile-card" data-profile="realestate"><span class="profile-icon">🏠</span><div class="profile-name">Real Estate &amp; Property</div></div>
         </div>
-        <!-- hidden select kept for JS sync compatibility -->
+        <!-- hidden select for JS sync -->
         <select id="enh_profileSel" style="display:none" onchange="onEnhProfileChange(this.value)"></select>
       </div>
+    </div>
 
-      <div class="f">
-        <label>Resume length</label>
-        <select id="enh_pageSel" onchange="selectedPages=parseInt(this.value,10)">
-          <option value="1">1 page</option>
-          <option value="2" selected>2 pages</option>
-          <option value="3">3 pages</option>
-          <option value="4">4 pages</option>
-          <option value="5">5 pages</option>
+    <!-- Sep 3 -->
+    <div class="wz-sep" id="enh-sep3">
+      <div class="wz-sep-line" id="enh-line3a"></div>
+      <div class="wz-sep-dot" id="enh-dot3">3</div>
+      <span class="wz-sep-label" id="enh-lbl3">Choose Template</span>
+      <div class="wz-sep-line" id="enh-line3b"></div>
+    </div>
+
+    <!-- ── Section 3: Template grid (locked until profile selected) ── -->
+    <div class="enh-section wz-locked" id="enh-s3">
+      <div class="card">
+        <div class="sec-hdr">
+          <div class="sec-num" style="background:#0d7a60">3</div>
+          <div class="sec-hdr-text"><h2>Choose a template</h2><p>Select the visual layout for your enhanced resume</p></div>
+        </div>
+        <div class="template-grid" id="enh_templateGrid">
+          <div class="enh-template-card" data-template="classic">
+            <div class="t-preview"></div>
+            <div class="t-name">Classic</div>
+            <div class="t-desc">Traditional · centered</div>
+            <button class="t-eye-btn" data-preview="classic">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="executive">
+            <div class="t-preview"></div>
+            <div class="t-name">Executive</div>
+            <div class="t-desc">Forest banner · serif · double rule</div>
+            <button class="t-eye-btn" data-preview="executive">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="modern">
+            <div class="t-preview"></div>
+            <div class="t-name">Modern</div>
+            <div class="t-desc">Indigo gradient · pill skills</div>
+            <button class="t-eye-btn" data-preview="modern">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="professional">
+            <div class="t-preview"></div>
+            <div class="t-name">Professional</div>
+            <div class="t-desc">Navy left-bar sections</div>
+            <button class="t-eye-btn" data-preview="professional">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="minimal">
+            <div class="t-preview"></div>
+            <div class="t-name">Minimal</div>
+            <div class="t-desc">Clean · no borders · inline skills</div>
+            <button class="t-eye-btn" data-preview="minimal">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="tech">
+            <div class="t-preview"></div>
+            <div class="t-name">Tech First</div>
+            <div class="t-desc">Dark banner · code tag skills</div>
+            <button class="t-eye-btn" data-preview="tech">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="consulting">
+            <div class="t-preview"></div>
+            <div class="t-name">Consulting</div>
+            <div class="t-desc">Burgundy stripe · left-bar</div>
+            <button class="t-eye-btn" data-preview="consulting">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="academic">
+            <div class="t-preview"></div>
+            <div class="t-name">Academic</div>
+            <div class="t-desc">Serif · dotted amber · edu first</div>
+            <button class="t-eye-btn" data-preview="academic">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="entrylevel">
+            <div class="t-preview"></div>
+            <div class="t-name">Entry Level</div>
+            <div class="t-desc">Sky banner · edu first</div>
+            <button class="t-eye-btn" data-preview="entrylevel">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="government">
+            <div class="t-preview"></div>
+            <div class="t-name">Government</div>
+            <div class="t-desc">Formal · navy block sections</div>
+            <button class="t-eye-btn" data-preview="government">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="creative">
+            <div class="t-preview"></div>
+            <div class="t-name">Creative</div>
+            <div class="t-desc">Teal stripe · pill skills</div>
+            <button class="t-eye-btn" data-preview="creative">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="healthcare">
+            <div class="t-preview"></div>
+            <div class="t-name">Healthcare</div>
+            <div class="t-desc">Teal stripe · clinical</div>
+            <button class="t-eye-btn" data-preview="healthcare">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="compact">
+            <div class="t-preview"></div>
+            <div class="t-name">Compact</div>
+            <div class="t-desc">Dense · gray caps · 1-page fit</div>
+            <button class="t-eye-btn" data-preview="compact">👁 Preview</button>
+          </div>
+          <div class="enh-template-card" data-template="midnight">
+            <div class="t-preview"></div>
+            <div class="t-name">Midnight</div>
+            <div class="t-desc">Software Eng · Tech Stack first</div>
+            <button class="t-eye-btn" data-preview="midnight">👁 Preview</button>
+          </div>
+        </div>
+        <!-- hidden select for JS sync -->
+        <select id="enh_templateSel" style="display:none">
+          <option value="classic">Classic</option>
+          <option value="executive">Executive</option>
+          <option value="modern">Modern</option>
+          <option value="professional">Professional</option>
+          <option value="minimal">Minimal</option>
+          <option value="tech">Tech First</option>
+          <option value="consulting">Consulting</option>
+          <option value="academic">Academic</option>
+          <option value="entrylevel">Entry Level</option>
+          <option value="government">Government</option>
+          <option value="creative">Creative</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="compact">Compact</option>
+          <option value="midnight">Midnight</option>
         </select>
-      </div>
-
-      <div class="f">
-        <label>Template style</label>
-        <select id="enh_templateSel" onchange="selectedTemplate=this.value">
-          <option value="classic">Classic — Traditional · centered</option>
-          <option value="executive">Executive — Forest banner · serif</option>
-          <option value="modern">Modern — Indigo gradient · pill skills</option>
-          <option value="professional">Professional — Navy left-bar sections</option>
-          <option value="minimal">Minimal — Clean · no borders</option>
-          <option value="techfirst">Tech First — Dark banner · code tags</option>
-          <option value="consulting">Consulting — Burgundy stripe · left-bar</option>
-          <option value="academic">Academic — Serif · dotted amber</option>
-          <option value="entrylevel">Entry Level — Sky banner · edu first</option>
-          <option value="government">Government — Formal · navy blocks</option>
-          <option value="creative">Creative — Teal stripe · pill skills</option>
-          <option value="healthcare">Healthcare — Teal stripe · clinical</option>
-          <option value="compact">Compact — Dense · gray caps · 1-page fit</option>
-          <option value="midnight">Midnight — Software Eng · Tech Stack first</option>
-        </select>
-      </div>
-
-      <div class="f">
-        <label>Custom instructions <span style="font-weight:400;font-size:11px;color:var(--muted);text-transform:none">optional</span></label>
-        <textarea id="enhanceInstructionsEnh" rows="4" placeholder="e.g. Focus on ERP and D365 experience&#10;Remove the volunteer section&#10;Emphasise leadership and stakeholder management&#10;Use a functional format focused on skills"></textarea>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:5px">💡 AI applies these while never fabricating information.</div>
       </div>
     </div>
 
-    <!-- Enhance button -->
-    <button id="enhanceBtnMain" class="build-btn" onclick="enhance()">✨ Enhance Resume — no job description needed</button>
-
-    <!-- Progress -->
-    <div class="card prog" id="enh_prog">
-      <div class="ps" id="enh_ps1"><span class="ps-ic">📂</span>Reading your resume…</div>
-      <div class="ps" id="enh_ps2"><span class="ps-ic">🧠</span>Enhancing with Claude AI…</div>
-      <div class="ps" id="enh_ps3"><span class="ps-ic">📄</span>Building Resume .docx…</div>
+    <!-- Sep 4 -->
+    <div class="wz-sep" id="enh-sep4">
+      <div class="wz-sep-line" id="enh-line4a"></div>
+      <div class="wz-sep-dot" id="enh-dot4">4</div>
+      <span class="wz-sep-label" id="enh-lbl4">Enhance</span>
+      <div class="wz-sep-line" id="enh-line4b"></div>
     </div>
 
-    <!-- Downloads -->
-    <div class="card" id="enh_dlCard" style="display:none">
-      <div class="sec-hdr" style="margin-bottom:12px">
-        <span style="font-size:20px">🎉</span><h2 style="margin-left:10px">Your enhanced resume is ready</h2>
+    <!-- ── Section 4: Settings + button (locked until template selected) ── -->
+    <div class="enh-section wz-locked" id="enh-s4">
+      <div class="card">
+        <div class="sec-hdr">
+          <div class="sec-num" style="background:#0d7a60">4</div>
+          <div class="sec-hdr-text"><h2>Finalise &amp; enhance</h2><p>Set length and optional instructions, then hit the button</p></div>
+        </div>
+        <div class="f">
+          <label>Resume length</label>
+          <select id="enh_pageSel" onchange="selectedPages=parseInt(this.value,10)">
+            <option value="1">1 page</option>
+            <option value="2" selected>2 pages</option>
+            <option value="3">3 pages</option>
+            <option value="4">4 pages</option>
+            <option value="5">5 pages</option>
+          </select>
+        </div>
+        <button class="ft-toggle-btn" id="enhCustToggle" onclick="(function(){var tb=document.getElementById('enhCustCard');var btn=document.getElementById('enhCustToggle');tb.classList.toggle('ft-open');btn.classList.toggle('open');})()">
+          <span>📝 Custom instructions <span style="font-weight:400;font-size:11.5px;color:var(--muted)">(optional)</span></span>
+          <i class="ft-arr">▼</i>
+        </button>
+        <div class="font-toolbar" id="enhCustCard" style="flex-direction:column;gap:8px">
+          <textarea id="enhanceInstructionsEnh" rows="4" placeholder="e.g. Focus on ERP and D365 experience&#10;Remove the volunteer section&#10;Emphasise leadership and stakeholder management&#10;Use a functional format focused on skills"></textarea>
+          <div style="font-size:11.5px;color:var(--muted)">💡 AI applies these while never fabricating information.</div>
+        </div>
       </div>
-      <div style="margin-bottom:4px">
-        <button type="button" id="enh_previewBtn" style="width:100%;margin-bottom:8px">👁 Preview Enhanced Resume</button>
+
+      <!-- Enhance button -->
+      <button id="enhanceBtnMain" class="build-btn" onclick="enhance()">✨ Enhance Resume — no job description needed</button>
+
+      <!-- Progress -->
+      <div class="card prog" id="enh_prog">
+        <div class="ps" id="enh_ps1"><span class="ps-ic">📂</span>Reading your resume…</div>
+        <div class="ps" id="enh_ps2"><span class="ps-ic">🧠</span>Enhancing with Claude AI…</div>
+        <div class="ps" id="enh_ps3"><span class="ps-ic">📄</span>Building Resume .docx…</div>
       </div>
-      <div class="dl-grid" id="enh_dlGrid"></div>
+
+      <!-- Downloads -->
+      <div class="card" id="enh_dlCard" style="display:none">
+        <div class="sec-hdr" style="margin-bottom:12px">
+          <span style="font-size:20px">🎉</span><h2 style="margin-left:10px">Your enhanced resume is ready</h2>
+        </div>
+        <div style="margin-bottom:4px">
+          <button type="button" id="enh_previewBtn" style="width:100%;margin-bottom:8px">👁 Preview Enhanced Resume</button>
+        </div>
+        <div class="dl-grid" id="enh_dlGrid"></div>
+      </div>
     </div>
 
   </div><!-- end modeEnhance -->
@@ -3506,7 +3650,7 @@
   // ── End app hamburger ─────────────────────────────────
 
 </script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 
 <!-- Upgrade Modal -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.72);display:none;align-items:center;justify-content:center;padding:20px">

@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Template card selection
+  // Template card selection (build mode)
   document.querySelectorAll('.template-card').forEach(function(card) {
     card.addEventListener('click', function() {
       document.querySelectorAll('.template-card').forEach(function(c) { c.classList.remove('selected'); });
@@ -897,6 +897,20 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show customizer panel only when Custom ✦ template is selected
       var custPanel = document.getElementById('custPanel');
       if(custPanel) custPanel.classList.toggle('on', selectedTemplate === 'custom');
+    });
+  });
+
+  // Enhance template card selection
+  document.querySelectorAll('.enh-template-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('.enh-template-card').forEach(function(c) { c.classList.remove('selected'); });
+      card.classList.add('selected');
+      selectedTemplate = card.getAttribute('data-template');
+      // sync hidden select
+      var eTs = document.getElementById('enh_templateSel');
+      if (eTs) eTs.value = selectedTemplate;
+      // Progressive reveal: unlock finalise section
+      enhUnlock('enh-s4');
     });
   });
 
@@ -1042,6 +1056,12 @@ function switchAppMode(mode) {
     if (ePs && selectedProfile) ePs.value = selectedProfile;
     if (eTs && selectedTemplate) eTs.value = selectedTemplate;
     if (ePg) ePg.value = String(selectedPages);
+    // Sync enhance template card grid
+    document.querySelectorAll('.enh-template-card').forEach(function(c) { c.classList.remove('selected'); });
+    if (selectedTemplate) {
+      var etc = document.querySelector('.enh-template-card[data-template="' + selectedTemplate + '"]');
+      if (etc) etc.classList.add('selected');
+    }
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1063,6 +1083,8 @@ function enhLoadFile(file) {
     if (nameEl)  nameEl.textContent   = file.name;
     var sn1 = document.getElementById('enh_sn1');
     if (sn1) sn1.textContent = '✓';
+    // Progressive reveal: unlock profile section
+    enhUnlock('enh-s2');
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1074,11 +1096,49 @@ function enhReset() {
   if (loaded) loaded.style.display = 'none';
   if (empty)  empty.style.display  = '';
   if (sn1)    sn1.textContent      = '1';
+  // Re-lock downstream sections
+  ['enh-s2','enh-s3','enh-s4'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('wz-locked');
+  });
+  refreshEnhSeps();
 }
 function onEnhProfileChange(val) {
   selectedProfile = val;
   var sn2 = document.getElementById('enh_sn2');
   if (sn2) sn2.textContent = val ? '✓' : '2';
+  // Progressive reveal: unlock template section
+  if (val) enhUnlock('enh-s3');
+}
+
+// ── Enhance progressive reveal helpers ────────────────────────────────────────
+function enhUnlock(sectionId) {
+  var el = document.getElementById(sectionId);
+  if (el) el.classList.remove('wz-locked');
+  refreshEnhSeps();
+  setTimeout(function() {
+    var t = document.getElementById(sectionId);
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 120);
+}
+
+function refreshEnhSeps() {
+  var seps = [
+    { dot:'enh-dot2', la:'enh-line2a', lb:'enh-line2b', section:'enh-s2' },
+    { dot:'enh-dot3', la:'enh-line3a', lb:'enh-line3b', section:'enh-s3' },
+    { dot:'enh-dot4', la:'enh-line4a', lb:'enh-line4b', section:'enh-s4' }
+  ];
+  seps.forEach(function(s) {
+    var sec = document.getElementById(s.section);
+    var dot = document.getElementById(s.dot);
+    var la  = document.getElementById(s.la);
+    var lb  = document.getElementById(s.lb);
+    if (!sec || !dot) return;
+    var locked = sec.classList.contains('wz-locked');
+    dot.classList.toggle('active', !locked);
+    if (la) la.classList.toggle('done', !locked);
+    if (lb) lb.classList.toggle('done', !locked);
+  });
 }
 
 function setStepDone(idx) {
@@ -3234,22 +3294,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Real template thumbnail previews ─────────────────────────────────────────
 function initTemplatePreviews() {
-  var grid = document.getElementById('resumeTemplateGrid');
-  if(!grid) return;
-  var cards = grid.querySelectorAll('.template-card[data-template]');
-  // Temporarily force tab to 'resume' for _tmcBuildHtml cache key
   var prevTab = _tmcTab;
   _tmcTab = 'resume';
-  cards.forEach(function(card) {
-    var key = card.getAttribute('data-template');
-    if(key === 'custom') return; // custom has its own placeholder
-    var previewEl = card.querySelector('.t-preview');
-    if(!previewEl) return;
-    var cardW = previewEl.offsetWidth || previewEl.parentElement.offsetWidth || 200;
-    var scale = (cardW / 860).toFixed(4);
-    var html = _tmcBuildHtml(key);
-    previewEl.innerHTML = '<div class="t-preview-scaler" style="width:860px;transform:scale('+scale+')">' + html + '</div>';
-  });
+  // Build grid previews
+  var grid = document.getElementById('resumeTemplateGrid');
+  if(grid) {
+    grid.querySelectorAll('.template-card[data-template]').forEach(function(card) {
+      var key = card.getAttribute('data-template');
+      if(key === 'custom') return;
+      var previewEl = card.querySelector('.t-preview');
+      if(!previewEl) return;
+      var cardW = previewEl.offsetWidth || previewEl.parentElement.offsetWidth || 200;
+      var scale = (cardW / 860).toFixed(4);
+      previewEl.innerHTML = '<div class="t-preview-scaler" style="width:860px;transform:scale('+scale+')">' + _tmcBuildHtml(key) + '</div>';
+    });
+  }
+  // Enhance grid previews
+  var enhGrid = document.getElementById('enh_templateGrid');
+  if(enhGrid) {
+    enhGrid.querySelectorAll('.enh-template-card[data-template]').forEach(function(card) {
+      var key = card.getAttribute('data-template');
+      var previewEl = card.querySelector('.t-preview');
+      if(!previewEl) return;
+      var cardW = previewEl.offsetWidth || previewEl.parentElement.offsetWidth || 200;
+      var scale = (cardW / 860).toFixed(4);
+      previewEl.innerHTML = '<div class="t-preview-scaler" style="width:860px;transform:scale('+scale+')">' + _tmcBuildHtml(key) + '</div>';
+    });
+  }
   _tmcTab = prevTab;
 }
 
