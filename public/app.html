@@ -787,6 +787,10 @@
     .tracker-badge { position:absolute; top:-4px; right:-4px; background:#dc2626; color:#fff; border-radius:50%; width:20px; height:20px; font-size:10px; font-weight:800; display:none; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 6px rgba(220,38,38,.4); }
     .tracker-badge.on { display:flex; }
 
+    @media (max-width:860px) {
+      .profile-grid  { grid-template-columns:repeat(4,1fr); }
+      .template-grid { grid-template-columns:repeat(3,1fr); }
+    }
     @media (max-width:640px) {
       .profile-grid { grid-template-columns:repeat(3,1fr); }
       .template-grid { grid-template-columns:repeat(2,1fr); }
@@ -3650,7 +3654,7 @@
   // ── End app hamburger ─────────────────────────────────
 
 </script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 
 <!-- Upgrade Modal -->
 <div id="upgradeModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.72);display:none;align-items:center;justify-content:center;padding:20px">

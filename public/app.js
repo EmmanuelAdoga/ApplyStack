@@ -1062,6 +1062,12 @@ function switchAppMode(mode) {
       var etc = document.querySelector('.enh-template-card[data-template="' + selectedTemplate + '"]');
       if (etc) etc.classList.add('selected');
     }
+    // Init enhance template previews on first open (cards were hidden during initTemplatePreviews)
+    var enhGrid = document.getElementById('enh_templateGrid');
+    if (enhGrid && !enhGrid.dataset.previewsInited) {
+      enhGrid.dataset.previewsInited = '1';
+      requestAnimationFrame(function() { requestAnimationFrame(initEnhTemplatePreviews); });
+    }
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -3296,7 +3302,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initTemplatePreviews() {
   var prevTab = _tmcTab;
   _tmcTab = 'resume';
-  // Build grid previews
   var grid = document.getElementById('resumeTemplateGrid');
   if(grid) {
     grid.querySelectorAll('.template-card[data-template]').forEach(function(card) {
@@ -3309,7 +3314,13 @@ function initTemplatePreviews() {
       previewEl.innerHTML = '<div class="t-preview-scaler" style="width:860px;transform:scale('+scale+')">' + _tmcBuildHtml(key) + '</div>';
     });
   }
-  // Enhance grid previews
+  _tmcTab = prevTab;
+}
+
+// Enhance template previews — called lazily on first open of enhance mode
+function initEnhTemplatePreviews() {
+  var prevTab = _tmcTab;
+  _tmcTab = 'resume';
   var enhGrid = document.getElementById('enh_templateGrid');
   if(enhGrid) {
     enhGrid.querySelectorAll('.enh-template-card[data-template]').forEach(function(card) {
@@ -4468,6 +4479,11 @@ function useVaultAsResume() {
   if (dzIcon)    dzIcon.textContent = '🗄️';
   if (dzTitle)   dzTitle.textContent = 'Career Vault loaded';
 
+  // Progressive reveal: unlock job details section
+  document.getElementById('sn1') && (document.getElementById('sn1').classList.add('done'));
+  setStepDone(1);
+  if (currentStep <= 1) setTimeout(function() { goStep(2); }, 550);
+
   // Switch to the upload tab to show the badge
   switchUploadTab('upload');
 
@@ -4535,6 +4551,11 @@ async function usePortfolioAsResume() {
     if (dz)        dz.classList.add('loaded');
     if (dzIcon)    dzIcon.textContent = '🌐';
     if (dzTitle)   dzTitle.textContent = 'Portfolio loaded';
+
+    // Progressive reveal: unlock job details section
+    document.getElementById('sn1') && (document.getElementById('sn1').classList.add('done'));
+    setStepDone(1);
+    if (currentStep <= 1) setTimeout(function() { goStep(2); }, 550);
 
     // Also save URL to vault data for easy re-sync
     _vault.portfolioUrl = url;
