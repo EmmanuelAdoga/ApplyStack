@@ -839,7 +839,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('buildBtn').textContent = '⚡ Build Resume only';
     build();
   });
-  document.getElementById('enhanceBtn').addEventListener('click', function() { enhance(); });
+  var _enhBtn = document.getElementById('enhanceBtn');
+  if (_enhBtn) _enhBtn.addEventListener('click', function() { enhance(); });
   document.getElementById('buildCoverBtn').addEventListener('click', function() {
     window._jmBuildMode = 'cover';
     document.getElementById('buildBtn').textContent = '⚡ Build Cover Letter only';
